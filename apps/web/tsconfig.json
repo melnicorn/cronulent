@@ -6,7 +6,13 @@
         "name": "next"
       }
     ],
-    "strictNullChecks": true
+    "strictNullChecks": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@repo/common": ["../../packages/common/src/index.ts"],
+      "@repo/common/*": ["../../packages/common/src/*"]
+    }
   },
   "include": [
     "**/*.ts",
