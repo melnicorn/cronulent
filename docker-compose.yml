@@ -1,0 +1,27 @@
+services:
+  scheduler:
+    build:
+      context: .
+      dockerfile: apps/scheduler/Dockerfile
+    ports:
+      - "3001:3001"
+    volumes:
+      - scheduler-data:/app/apps/scheduler/data
+    env_file:
+      - apps/scheduler/.env
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - SCHEDULER_URL=http://scheduler:3001
+    depends_on:
+      - scheduler
+    restart: unless-stopped
+
+volumes:
+  scheduler-data:
