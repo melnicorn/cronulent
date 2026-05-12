@@ -152,11 +152,13 @@ response. Then log in via the UI and confirm the task list is accessible.
   time.
 - **FR-011**: The system MUST resume all active task schedules automatically after a backend
   restart, without administrator intervention.
+- **FR-012**: Task definitions MUST support per-task environment variables that are injected into
+  the subprocess environment at execution time, in addition to the system environment.
 
 ### Key Entities
 
 - **Task**: A named, schedulable unit of work. Has a name, optional description, command type,
-  command/script path, parameters, cron expression, and enabled/paused state.
+  command/script path, parameters, environment variables, cron expression, and enabled/paused state.
 - **Execution**: A single run of a Task. Records task ID, start time, end time, duration, exit
   code, stdout, stderr, and status (running, success, failed, interrupted).
 - **Schedule**: The cron expression and active/paused state governing when a Task fires.
