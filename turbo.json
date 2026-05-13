@@ -1,6 +1,7 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
   "ui": "tui",
+  "globalEnv": ["PORT", "DATA_DIR", "SCHEDULER_URL", "SECURE_COOKIE"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

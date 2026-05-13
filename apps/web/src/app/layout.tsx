@@ -1,25 +1,23 @@
 import type { Metadata } from 'next'
+import { ThemeProvider } from 'next-themes'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'My App',
-  description: 'Clean Next.js App'
+  title: 'Cronulent',
+  description: 'Cron task manager',
 }
 
 export default function RootLayout({
-  children
+  children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
   return (
-    <html lang='en'>
+    <html lang="en" suppressHydrationWarning>
       <body>
-        <header>Header</header>
-        <div className='layout-body'>
-          <aside>Side Panel</aside>
-          <main>{children}</main>
-        </div>
-        <footer>Footer</footer>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   )
