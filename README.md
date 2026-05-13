@@ -1,5 +1,7 @@
 # Cronulent
 
+![Cronulent](etc/cronulent.png)
+
 A self-hosted cron task manager. Schedule and run shell scripts, Python (via uv), and Node.js (via Volta) tasks on a cron schedule, with a web UI to manage everything.
 
 ## What's inside
