@@ -109,10 +109,18 @@ jobs:
           PREVIOUS_TAG: ${{ steps.prev_tag.outputs.tag }}
         run: |
           bash .github/scripts/release-notes.sh > /tmp/release-notes.md
+          VERSION="${{ steps.version.outputs.version }}"
+          REPO="${{ github.repository }}"
+          echo "" >> /tmp/release-notes.md
+          echo "## Getting Started" >> /tmp/release-notes.md
+          echo '```sh' >> /tmp/release-notes.md
+          echo "curl -LO https://github.com/${REPO}/releases/download/v${VERSION}/docker-compose.prod.yml" >> /tmp/release-notes.md
+          echo "docker compose -f docker-compose.prod.yml up" >> /tmp/release-notes.md
+          echo '```' >> /tmp/release-notes.md
           echo "" >> /tmp/release-notes.md
           echo "## Images" >> /tmp/release-notes.md
-          echo "- \`ghcr.io/${{ github.repository_owner }}/cronulent-scheduler:${{ steps.version.outputs.version_tag }}\`" >> /tmp/release-notes.md
-          echo "- \`ghcr.io/${{ github.repository_owner }}/cronulent-web:${{ steps.version.outputs.version_tag }}\`" >> /tmp/release-notes.md
+          echo "- \`ghcr.io/${{ github.repository_owner }}/cronulent-scheduler:${VERSION}\`" >> /tmp/release-notes.md
+          echo "- \`ghcr.io/${{ github.repository_owner }}/cronulent-web:${VERSION}\`" >> /tmp/release-notes.md
 
       - name: Create and push git tag
         if: steps.version.outputs.is_main == 'true'
@@ -129,4 +137,5 @@ jobs:
         run: |
           gh release create "v${{ steps.version.outputs.version }}" \
             --title "v${{ steps.version.outputs.version }}" \
-            --notes-file /tmp/release-notes.md
+            --notes-file /tmp/release-notes.md \
+            docker-compose.prod.yml
