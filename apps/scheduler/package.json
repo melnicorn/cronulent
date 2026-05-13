@@ -10,7 +10,8 @@
     "dev": "node --watch --import tsx/esm src/index.ts",
     "start": "node --import tsx/esm src/index.ts",
     "lint": "eslint . --max-warnings 0",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "test": "echo \"No tests yet\" && exit 0"
   },
   "dependencies": {
     "@repo/common": "workspace:*",
