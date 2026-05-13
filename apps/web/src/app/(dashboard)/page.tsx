@@ -33,7 +33,7 @@ export default async function DashboardPage() {
           <p className="text-sm">No tasks yet. Create one to get started.</p>
         </div>
       ) : (
-        <div className="rounded-lg border border-border divide-y divide-border">
+        <div className="rounded-lg border border-border divide-y divide-border bg-card">
           {tasks.map(task => (
             <TaskRow key={task.id} task={task} />
           ))}

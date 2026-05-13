@@ -6,6 +6,7 @@ import { Play, Pause, TriangleAlert, Trash2 } from 'lucide-react'
 import type { Task } from '@repo/common'
 import { pauseTaskAction, resumeTaskAction, triggerTaskAction, deleteTaskAction } from '../actions/tasks'
 import cronstrue from 'cronstrue'
+import { CronExpressionParser } from 'cron-parser'
 
 interface Props {
   task: Task
@@ -22,19 +23,36 @@ export function TaskRow({ task }: Props) {
     }
   }
 
+  function nextRun(expr: string) {
+    try {
+      const next = CronExpressionParser.parse(expr).next().toDate()
+      return next.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+    } catch {
+      return null
+    }
+  }
+
+  const next = nextRun(task.cronExpression)
+
   return (
     <div className="flex items-center justify-between px-4 py-3 hover:bg-accent/40 transition-colors">
       <div className="flex-1 min-w-0">
         <Link href={`/tasks/${task.id}`} className="font-medium text-foreground hover:underline truncate block">
           {task.name}
         </Link>
+        {task.description && (
+          <p className="text-sm text-muted-foreground mt-0.5 truncate">{task.description}</p>
+        )}
         <p className="text-xs text-muted-foreground mt-0.5 truncate">{humanCron(task.cronExpression)}</p>
+        {next && (
+          <p className="text-xs text-muted-foreground/70 mt-0.5 truncate" suppressHydrationWarning>Next: {next}</p>
+        )}
       </div>
       <div className="flex items-center gap-2 ml-4 shrink-0">
         <span
           className={`text-xs px-2 py-0.5 rounded-full ${
             task.enabled
-              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+              ? 'bg-green-700 text-white dark:bg-green-500/20 dark:text-green-400 dark:ring-1 dark:ring-green-500/40'
               : 'bg-muted text-muted-foreground'
           }`}
         >
