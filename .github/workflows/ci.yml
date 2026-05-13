@@ -107,7 +107,12 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           PREVIOUS_TAG: ${{ steps.prev_tag.outputs.tag }}
-        run: bash .github/scripts/release-notes.sh > /tmp/release-notes.md
+        run: |
+          bash .github/scripts/release-notes.sh > /tmp/release-notes.md
+          echo "" >> /tmp/release-notes.md
+          echo "## Images" >> /tmp/release-notes.md
+          echo "- \`ghcr.io/${{ github.repository_owner }}/cronulent-scheduler:${{ steps.version.outputs.version_tag }}\`" >> /tmp/release-notes.md
+          echo "- \`ghcr.io/${{ github.repository_owner }}/cronulent-web:${{ steps.version.outputs.version_tag }}\`" >> /tmp/release-notes.md
 
       - name: Create and push git tag
         if: steps.version.outputs.is_main == 'true'
