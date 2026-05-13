@@ -1,8 +1,25 @@
 # Cronulent
 
-![Cronulent](etc/cronulent.png)
+<table><tr>
+<td>A self-hosted cron task manager. Schedule and run shell scripts, Python (via uv), and Node.js (via Volta) tasks on a cron schedule, with a web UI to manage everything. It's fine...it's acceptable...it's Cronulent!</td>
+<td><img src="etc/cronulent.png" width="300" /></td>
+</tr></table>
 
-A self-hosted cron task manager. Schedule and run shell scripts, Python (via uv), and Node.js (via Volta) tasks on a cron schedule, with a web UI to manage everything.
+## Getting Started
+
+**Prerequisites:** Docker
+
+Download the latest compose file and start:
+
+```bash
+curl -LO https://github.com/melnicorn/cronulent/releases/latest/download/docker-compose.prod.yml
+docker compose -f docker-compose.prod.yml up
+```
+
+On first run, open http://localhost:3000 and you'll be prompted to create an admin password. Credentials are stored in the persistent data volume — no setup script needed.
+
+- Web UI: http://localhost:3000
+- Scheduler API: http://localhost:3001
 
 ## What's inside
 
@@ -12,7 +29,7 @@ A self-hosted cron task manager. Schedule and run shell scripts, Python (via uv)
 | `apps/web` | Next.js frontend — task management UI |
 | `packages/common` | Shared TypeScript types, Zod schemas, tRPC router |
 
-## Running with Docker (recommended)
+## Running with Docker (development)
 
 **Prerequisites:** Docker
 
