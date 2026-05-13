@@ -117,11 +117,14 @@ apps/
 │       │   ├── (auth)/
 │       │   │   └── login/
 │       │   │       └── page.tsx         # Login form (server component)
+│       │   ├── login/
+│       │   │   └── page.tsx             # Login form
+│       │   ├── setup/
+│       │   │   └── page.tsx             # First-run setup (initializes config.json5)
 │       │   └── (dashboard)/
 │       │       ├── layout.tsx           # Dashboard shell: nav + auth guard
-│       │       ├── page.tsx             # Task list (redirect or inline)
+│       │       ├── page.tsx             # Task list (root route /)
 │       │       └── tasks/
-│       │           ├── page.tsx         # Task list view
 │       │           ├── new/
 │       │           │   └── page.tsx     # New task form
 │       │           └── [id]/
@@ -130,6 +133,7 @@ apps/
 │       │                   └── page.tsx # Edit task form
 │       ├── actions/
 │       │   ├── auth.ts                  # Server actions: login, logout
+│       │   ├── system.ts                # Server actions: system setup/init
 │       │   └── tasks.ts                 # Server actions: CRUD, trigger, pause/resume
 │       ├── components/
 │       │   ├── theme-toggle.tsx         # Dark/light toggle button (lucide icons)

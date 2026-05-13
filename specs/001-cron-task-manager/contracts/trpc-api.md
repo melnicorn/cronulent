@@ -12,7 +12,7 @@ web app via server actions (never directly from the browser).
 ## Transport
 
 - **Adapter**: `@trpc/server/adapters/standalone`
-- **Endpoint**: `http://$SCHEDULER_HOST:$SCHEDULER_PORT/trpc`
+- **Endpoint**: `$SCHEDULER_URL/trpc` (e.g. `http://localhost:3001/trpc`)
 - **Batching**: Enabled (default tRPC batch behavior)
 - **Auth**: Bearer token in `Authorization` header (`Authorization: Bearer <jwt>`)
 

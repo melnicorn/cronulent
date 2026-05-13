@@ -25,12 +25,12 @@ description: "Task list for Cron Task Manager implementation"
 
 **Purpose**: Scaffold new packages and install dependencies; no source logic yet.
 
-- [ ] T001 Update `packages/common/package.json` — add `@trpc/server@^11`, `zod@^3`, `uuid@^11` as runtime dependencies; keep existing react/react-dom
-- [ ] T002 [P] Create `apps/scheduler/package.json` — `"name": "scheduler"`, `"type": "module"`, `"engines": {"node": ">=22.6"}`, scripts `"dev": "node --experimental-strip-types src/index.ts"` and `"start": "node src/index.ts"`, runtime deps `@trpc/server`, `node-cron`, `json5`, `jose`, `uuid`, `@repo/common workspace:*`; devDeps `@repo/typescript-config workspace:*`, `@repo/eslint-config workspace:*`, `typescript`, `eslint`, `@types/node`, `@types/uuid`
-- [ ] T003 [P] Create `apps/scheduler/tsconfig.json` — extends `@repo/typescript-config/node.json`; add `compilerOptions.paths` for `@repo/common` pointing to `../../packages/common/src/index.ts` and `@repo/common/*` to `../../packages/common/src/*`
-- [ ] T004 [P] Add `@tailwindcss/postcss` and `tailwindcss` to `apps/web/package.json` devDependencies; create `apps/web/postcss.config.mjs` exporting `{ plugins: { '@tailwindcss/postcss': {} } }`
-- [ ] T005 [P] Add `@trpc/client`, `next-themes`, `lucide-react`, `@monaco-editor/react`, `cronstrue` to `apps/web/package.json` dependencies
-- [ ] T006 Run `pnpm install` from repo root — verify all workspace dependencies resolve without errors
+- [x] T001 Update `packages/common/package.json` — add `@trpc/server@^11`, `zod@^3`, `uuid@^11` as runtime dependencies; keep existing react/react-dom
+- [x] T002 [P] Create `apps/scheduler/package.json` — `"name": "scheduler"`, `"type": "module"`, `"engines": {"node": ">=22.6"}`, scripts `"dev": "node --experimental-strip-types src/index.ts"` and `"start": "node src/index.ts"`, runtime deps `@trpc/server`, `node-cron`, `json5`, `jose`, `uuid`, `@repo/common workspace:*`; devDeps `@repo/typescript-config workspace:*`, `@repo/eslint-config workspace:*`, `typescript`, `eslint`, `@types/node`, `@types/uuid`
+- [x] T003 [P] Create `apps/scheduler/tsconfig.json` — extends `@repo/typescript-config/node.json`; add `compilerOptions.paths` for `@repo/common` pointing to `../../packages/common/src/index.ts` and `@repo/common/*` to `../../packages/common/src/*`
+- [x] T004 [P] Add `@tailwindcss/postcss` and `tailwindcss` to `apps/web/package.json` devDependencies; create `apps/web/postcss.config.mjs` exporting `{ plugins: { '@tailwindcss/postcss': {} } }`
+- [x] T005 [P] Add `@trpc/client`, `next-themes`, `lucide-react`, `@monaco-editor/react`, `cronstrue` to `apps/web/package.json` dependencies
+- [x] T006 Run `pnpm install` from repo root — verify all workspace dependencies resolve without errors
 
 **Checkpoint**: All packages install; `pnpm ls` shows scheduler and updated common/web packages.
 
@@ -45,34 +45,34 @@ No user story work can begin until this phase is complete.
 
 ### `@repo/common` — Shared types and tRPC router
 
-- [ ] T007 Create `packages/common/src/entities.ts` — export `CommandType` union type (`'shell' | 'python' | 'node' | 'executable'`), `ExecutionStatus` union type, `Task` interface, `Execution` interface, `TokenPayload` interface — exact shapes from `data-model.md`
-- [ ] T008 [P] Create `packages/common/src/schemas.ts` — Zod schemas: `taskSchema`, `executionSchema`, `createTaskInputSchema` (omits id/createdAt/updatedAt), `updateTaskInputSchema` (id + partial); export inferred `CreateTaskInput` and `UpdateTaskInput` types; import entity types from `./entities`
-- [ ] T009 [P] Create `packages/common/src/repositories.ts` — export `ITaskRepository` and `IExecutionRepository` interfaces with all methods defined in `data-model.md`; import `Task`, `Execution`, `CreateTaskInput`, `UpdateTaskInput` from `./entities` and `./schemas`
-- [ ] T010 [P] Create `packages/common/src/services.ts` — export `ISchedulerService` interface with `start`, `stop`, `scheduleTask`, `unscheduleTask`, `triggerNow` methods as defined in `data-model.md`; import `Task`, `Execution` from `./entities`
-- [ ] T011 Create `packages/common/src/router/context.ts` — export `AppContext` interface with fields `taskRepo: ITaskRepository`, `executionRepo: IExecutionRepository`, `schedulerService: ISchedulerService`, `token: string | undefined`; import from `../repositories` and `../services`
-- [ ] T012 [P] Create `packages/common/src/router/auth.ts` — export `authRouter`: `auth.login` mutation (input: `{ password: string }`, output: `{ token: string; expiresAt: string }`, no auth required); `auth.logout` mutation (auth required, output: `{ ok: true }`); procedures delegate to `ctx.schedulerService` and context; import AppContext from `./context`
-- [ ] T013 [P] Create `packages/common/src/router/tasks.ts` — export `tasksRouter` with all 8 procedures from `contracts/trpc-api.md` (`tasks.list`, `.get`, `.create`, `.update`, `.delete`, `.trigger`, `.pause`, `.resume`); all require auth middleware; use Zod schemas for input validation; procedures delegate to `ctx.taskRepo` and `ctx.schedulerService`
-- [ ] T014 [P] Create `packages/common/src/router/executions.ts` — export `executionsRouter` with `executions.list` (input: `{ taskId: string; limit?: number }`) and `executions.get` (input: `{ id: string }`); require auth middleware; delegate to `ctx.executionRepo`
-- [ ] T015 Create `packages/common/src/router/index.ts` — `createAppRouter()` factory composing `authRouter`, `tasksRouter`, `executionsRouter`; export `AppRouter = ReturnType<typeof createAppRouter>` type
-- [ ] T016 Update `packages/common/src/index.ts` — barrel: re-export everything from `./entities`, `./schemas`, `./repositories`, `./services`, `./router/index`
+- [x] T007 Create `packages/common/src/entities.ts` — export `CommandType` union type (`'shell' | 'python' | 'node' | 'executable'`), `ExecutionStatus` union type, `Task` interface, `Execution` interface, `TokenPayload` interface — exact shapes from `data-model.md`
+- [x] T008 [P] Create `packages/common/src/schemas.ts` — Zod schemas: `taskSchema`, `executionSchema`, `createTaskInputSchema` (omits id/createdAt/updatedAt), `updateTaskInputSchema` (id + partial); export inferred `CreateTaskInput` and `UpdateTaskInput` types; import entity types from `./entities`
+- [x] T009 [P] Create `packages/common/src/repositories.ts` — export `ITaskRepository` and `IExecutionRepository` interfaces with all methods defined in `data-model.md` (including `IExecutionRepository.deleteByTaskId(taskId: string): Promise<void>`); import `Task`, `Execution`, `CreateTaskInput`, `UpdateTaskInput` from `./entities` and `./schemas`
+- [x] T010 [P] Create `packages/common/src/services.ts` — export `ISchedulerService` interface with `start`, `stop`, `scheduleTask`, `unscheduleTask`, `triggerNow` methods as defined in `data-model.md`; import `Task`, `Execution` from `./entities`
+- [x] T011 Create `packages/common/src/router/context.ts` — export `AppContext` interface with fields `taskRepo: ITaskRepository`, `executionRepo: IExecutionRepository`, `schedulerService: ISchedulerService`, `token: string | undefined`, `verifyPassword(input: string): Promise<boolean>`, `signToken(sub: string): Promise<string>`; import from `../repositories` and `../services`
+- [x] T012 [P] Create `packages/common/src/router/auth.ts` — export `authRouter`: `auth.login` mutation (input: `{ password: string }`, output: `{ token: string; expiresAt: string }`, no auth required); `auth.logout` mutation (auth required, output: `{ ok: true }`); procedures delegate to `ctx.schedulerService` and context; import AppContext from `./context`
+- [x] T013 [P] Create `packages/common/src/router/tasks.ts` — export `tasksRouter` with all 8 procedures from `contracts/trpc-api.md` (`tasks.list`, `.get`, `.create`, `.update`, `.delete`, `.trigger`, `.pause`, `.resume`); all require auth middleware; use Zod schemas for input validation; procedures delegate to `ctx.taskRepo` and `ctx.schedulerService`; `tasks.delete` MUST call `ctx.executionRepo.deleteByTaskId(id)` after `ctx.taskRepo.delete(id)` to purge execution history
+- [x] T014 [P] Create `packages/common/src/router/executions.ts` — export `executionsRouter` with `executions.list` (input: `{ taskId: string; limit?: number }`) and `executions.get` (input: `{ id: string }`); require auth middleware; delegate to `ctx.executionRepo`
+- [x] T015 Create `packages/common/src/router/index.ts` — `createAppRouter()` factory composing `authRouter`, `tasksRouter`, `executionsRouter`; export `AppRouter = ReturnType<typeof createAppRouter>` type
+- [x] T016 Update `packages/common/src/index.ts` — barrel: re-export everything from `./entities`, `./schemas`, `./repositories`, `./services`, `./router/index`
 
 ### `apps/scheduler` — Concrete implementations and HTTP server
 
-- [ ] T017 [P] Create `apps/scheduler/src/repositories/json5/task-repo.ts` — `Json5TaskRepository` class implementing `ITaskRepository`; reads/writes `tasks.json5` (creates file with `[]` if absent); all mutations: read full array → modify → write full array; uses `uuid` for `id` generation and `new Date().toISOString()` for timestamps
-- [ ] T018 [P] Create `apps/scheduler/src/repositories/json5/execution-repo.ts` — `Json5ExecutionRepository` implementing `IExecutionRepository`; reads/writes `executions.json5`; `findRunning()` filters by `status === 'running'`
-- [ ] T019 Create `apps/scheduler/src/repositories/index.ts` — `createRepositories(dataDir: string)`: ensures `dataDir` exists (mkdir recursive), ensures both json5 files exist with `[]` default, returns `{ taskRepo: ITaskRepository, executionRepo: IExecutionRepository }`
-- [ ] T020 Create `apps/scheduler/src/executor.ts` — `spawnTask(task: Task, execId: string, execRepo: IExecutionRepository): Promise<void>`: builds argv per `commandType` (shell → `['/bin/sh', '-c', task.command, ...task.parameters]`; python → `['python3', task.command, ...task.parameters]`; node → `['node', task.command, ...task.parameters]`; executable → `[task.command, ...task.parameters]`); merges `{ ...process.env, ...task.env }` for subprocess env; captures stdout/stderr (truncated at 100,000 chars); updates execution record with exit code, duration, status on completion
-- [ ] T021 Create `apps/scheduler/src/auth.ts` — `signToken(sub: string): Promise<string>` using `jose` `SignJWT` with HS256 and `JWT_SECRET` env; `verifyToken(token: string): Promise<TokenPayload | null>` using `jose` `jwtVerify`; `verifyPassword(input: string, storedHash: string): Promise<boolean>` using Node.js `crypto.scrypt` (format: `scrypt:N:r:p:salt:hash`)
-- [ ] T022 Create `apps/scheduler/src/scheduler.ts` — `NodeCronSchedulerService` class implementing `ISchedulerService`; holds `Map<string, ScheduledTask>` of active cron jobs; `start()`: loads all enabled tasks from `taskRepo`, schedules each; `scheduleTask(task)`: validates cron, registers `node-cron` task that calls `executor` — skip+log if task already running; `unscheduleTask(id)`: stops and removes job; `triggerNow(id)`: runs immediately regardless of schedule but still enforces concurrent-run policy; inject `taskRepo`, `executionRepo`, `executor` via constructor
-- [ ] T023 Create `apps/scheduler/src/http.ts` — `createHttpServer(opts: { port: number; taskRepo; executionRepo; schedulerService; verifyToken })`: uses `@trpc/server/adapters/standalone`; `createContext` extracts `Authorization: Bearer <token>` header, calls `verifyToken`, passes result into `AppContext`; creates and returns the HTTP server instance
-- [ ] T024 Create `apps/scheduler/src/index.ts` — startup: reads `PORT`, `DATA_DIR`, `JWT_SECRET`, `ADMIN_PASSWORD_HASH` from `process.env` (exit 1 if any missing); calls `createRepositories(DATA_DIR)`; marks any `running` executions as `interrupted` via `execRepo.findRunning()` loop; instantiates `NodeCronSchedulerService`; calls `scheduler.start()`; calls `createHttpServer` and `.listen(PORT)`; logs ready message
+- [x] T017 [P] Create `apps/scheduler/src/repositories/json5/task-repo.ts` — `Json5TaskRepository` class implementing `ITaskRepository`; reads/writes `tasks.json5` (creates file with `[]` if absent); all mutations: read full array → modify → write full array; uses `uuid` for `id` generation and `new Date().toISOString()` for timestamps
+- [x] T018 [P] Create `apps/scheduler/src/repositories/json5/execution-repo.ts` — `Json5ExecutionRepository` implementing `IExecutionRepository`; reads/writes `executions.json5`; `findRunning()` filters by `status === 'running'`; `deleteByTaskId(taskId)` reads full array, filters out all entries where `execution.taskId === taskId`, writes back
+- [x] T019 Create `apps/scheduler/src/repositories/index.ts` — `createRepositories(dataDir: string)`: ensures `dataDir` exists (mkdir recursive), ensures both json5 files exist with `[]` default, returns `{ taskRepo: ITaskRepository, executionRepo: IExecutionRepository }`
+- [x] T020 Create `apps/scheduler/src/executor.ts` — `spawnTask(task: Task, execId: string, execRepo: IExecutionRepository): Promise<void>`: builds argv per `commandType` (shell → `['/bin/sh', '-c', task.command, ...task.parameters]`; python → `['python3', task.command, ...task.parameters]`; node → `['node', task.command, ...task.parameters]`; executable → `[task.command, ...task.parameters]`); merges `{ ...process.env, ...task.env }` for subprocess env; captures stdout/stderr (truncated at 100,000 chars); updates execution record with exit code, duration, status on completion
+- [x] T021 Create `apps/scheduler/src/auth.ts` — `AuthService` class wrapping `ConfigManager`; `verifyPassword(input)` uses `crypto.scrypt` against stored hash+salt from `config.json5`; `signToken(sub)` issues HS256 JWT using jwtSecret from config; `verifyToken(token)` validates JWT; password and JWT secret managed via `ConfigManager` (no env vars for these)
+- [x] T022 Create `apps/scheduler/src/scheduler.ts` — `NodeCronSchedulerService` class implementing `ISchedulerService`; holds `Map<string, ScheduledTask>` of active cron jobs; `start()`: loads all enabled tasks from `taskRepo`, schedules each; `scheduleTask(task)`: validates cron, registers `node-cron` task that calls `executor` — skip+log if task already running; `unscheduleTask(id)`: stops and removes job; `triggerNow(id)`: runs immediately regardless of schedule but still enforces concurrent-run policy; inject `taskRepo`, `executionRepo`, `executor` via constructor
+- [x] T023 Create `apps/scheduler/src/http.ts` — `createHttpServer(opts: { port: number; taskRepo; executionRepo; schedulerService; verifyToken; verifyPassword; signToken })`: uses `@trpc/server/adapters/standalone`; `createContext` extracts `Authorization: Bearer <token>` header, calls `verifyToken`, passes all fields (including `verifyPassword` and `signToken`) into `AppContext`; creates and returns the HTTP server instance
+- [x] T024 Create `apps/scheduler/src/index.ts` — startup: reads `PORT` and `DATA_DIR` from env (with defaults); calls `createRepositories(DATA_DIR)`; loads `ConfigManager`; marks any `running` executions as `interrupted` via `execRepo.findRunning()` loop; instantiates `NodeCronSchedulerService`; calls `scheduler.start()`; starts HTTP server; logs ready message
 
 ### `apps/web` — Base infrastructure
 
-- [ ] T025 [P] Update `apps/web/src/app/globals.css` — replace body with `@import "tailwindcss";` and `@custom-variant dark (&:where(.dark, .dark *));`; add CSS custom properties on `:root` for color palette (background, foreground, muted, border, primary) and override under `.dark`
-- [ ] T026 [P] Create `apps/web/src/lib/session.ts` — `'use server'` module; `getSessionToken(): Promise<string | undefined>` reads `'session'` httpOnly cookie via `cookies()` from `next/headers`; `setSessionToken(token: string, expiresAt: string): Promise<void>` sets cookie; `clearSessionToken(): Promise<void>` deletes cookie
-- [ ] T027 Create `apps/web/src/lib/trpc.ts` — server-only module (`import 'server-only'`); `createTrpcClient(token?: string)` creates `@trpc/client` instance with `httpBatchLink({ url: process.env.SCHEDULER_URL, headers: token ? { Authorization: 'Bearer ' + token } : {} })`; typed as `AppRouter` imported from `@repo/common`
-- [ ] T028 Update `apps/web/src/app/layout.tsx` — wrap `{children}` in `ThemeProvider` from `next-themes` with `attribute="class"`, `defaultTheme="system"`, `enableSystem`; keep existing `<html lang="en">` structure
+- [x] T025 [P] Update `apps/web/src/app/globals.css` — replace body with `@import "tailwindcss";` and `@custom-variant dark (&:where(.dark, .dark *));`; add CSS custom properties on `:root` for color palette (background, foreground, muted, border, primary) and override under `.dark`
+- [x] T026 [P] Create `apps/web/src/lib/session.ts` — `'use server'` module; `getSessionToken(): Promise<string | undefined>` reads `'session'` httpOnly cookie via `cookies()` from `next/headers`; `setSessionToken(token: string, expiresAt: string): Promise<void>` sets cookie; `clearSessionToken(): Promise<void>` deletes cookie
+- [x] T027 Create `apps/web/src/lib/trpc.ts` — server-only module (`import 'server-only'`); `createTrpcClient(token?: string)` creates `@trpc/client` instance with `httpBatchLink({ url: process.env.SCHEDULER_URL, headers: token ? { Authorization: 'Bearer ' + token } : {} })`; typed as `AppRouter` imported from `@repo/common`
+- [x] T028 Update `apps/web/src/app/layout.tsx` — wrap `{children}` in `ThemeProvider` from `next-themes` with `attribute="class"`, `defaultTheme="system"`, `enableSystem`; keep existing `<html lang="en">` structure
 
 **Checkpoint**: Foundation complete. Run `turbo check-types` — zero errors. `turbo lint` — zero warnings. Apps do not need to boot yet.
 
@@ -82,12 +82,12 @@ No user story work can begin until this phase is complete.
 
 **Goal**: Login page + auth guard; all other user stories depend on having an active session.
 
-**Independent Test**: (1) Navigate to `/tasks` while unauthenticated — verify redirect to `/login`. (2) Enter correct password — verify redirect to `/tasks` dashboard. (3) Click logout — verify redirect to `/login` and subsequent `/tasks` access redirects again.
+**Independent Test**: (1) Navigate to `/` while unauthenticated — verify redirect to `/login`. (2) Enter correct password — verify redirect to dashboard. (3) Click logout — verify redirect to `/login` and subsequent access redirects again.
 
-- [ ] T029 [P] [US4] Create `apps/web/src/app/actions/auth.ts` — `loginAction(formData: FormData)`: extracts password, calls `createTrpcClient().auth.login`, on success calls `setSessionToken` then `redirect('/tasks')`; on `UNAUTHORIZED` tRPC error returns error message; `logoutAction()`: calls `createTrpcClient(token).auth.logout`, calls `clearSessionToken()`, `redirect('/login')`
-- [ ] T030 [US4] Create `apps/web/src/app/(auth)/login/page.tsx` — Server Component rendering a login form; client-side form submits to `loginAction`; displays error message returned from action; lucide `Lock` icon in header; no emoji
-- [ ] T031 [US4] Create `apps/web/src/app/(dashboard)/layout.tsx` — Server Component; reads session token via `getSessionToken()`; if absent calls `redirect('/login')`; renders outer shell: nav bar with app name "Cronulent", theme toggle placeholder (`{/* ThemeToggle added in Polish */}`), logout button calling `logoutAction`; wraps `{children}`
-- [ ] T032 [P] [US4] Update `apps/web/src/app/page.tsx` — replace body with `redirect('/tasks')` (import from `next/navigation`)
+- [x] T029 [P] [US4] Create `apps/web/src/actions/auth.ts` — `loginAction(formData: FormData)`: extracts password, calls `createTrpcClient().auth.login`, on success calls `setSessionToken` then redirects to dashboard; on `UNAUTHORIZED` tRPC error returns error message; `logoutAction()`: clears session token, redirects to `/login`
+- [x] T030 [US4] Create `apps/web/src/app/login/page.tsx` — Server Component rendering a login form; displays error message returned from action; lucide `Lock` icon in header; no emoji
+- [x] T031 [US4] Create `apps/web/src/app/(dashboard)/layout.tsx` — Server Component; reads session token via `getSessionToken()`; if absent calls `redirect('/login')`; renders outer shell: nav bar with app name "Cronulent", theme toggle, logout button; wraps `{children}`
+- [x] T032 [P] [US4] Root route handled by `(dashboard)/page.tsx` — task list served at `/`; no separate root `page.tsx` needed
 
 **Checkpoint**: US4 independently functional. Auth flow works end-to-end; unauthenticated access redirected.
 
@@ -99,14 +99,14 @@ No user story work can begin until this phase is complete.
 
 **Independent Test**: Log in. Click "New Task". Fill form: name "Hello World", commandType "shell", command `echo "hello from cronulent"`, schedule `* * * * *`. Save. Wait ≤60s. Verify an execution with status "success" and stdout "hello from cronulent" appears.
 
-- [ ] T033 [P] [US1] Create `apps/web/src/app/actions/tasks.ts` — server actions `listTasksAction(): Promise<Task[]>` and `createTaskAction(input: CreateTaskInput): Promise<{ ok: true } | { error: string }>`; each calls `createTrpcClient(await getSessionToken()).tasks.*`
-- [ ] T034 [P] [US1] Create `apps/web/src/components/cron-helper.tsx` — `'use client'`; accepts `value: string` prop; debounces 200ms; calls `cronstrue.toString(value, { throwExceptionOnParseError: false })`; renders human-readable explanation or validation error in styled text below input; no emoji — use lucide `Clock` icon
-- [ ] T035 [P] [US1] Create `apps/web/src/components/script-editor.tsx` — `'use client'`; `dynamic(() => import('@monaco-editor/react'), { ssr: false })`; accepts `value`, `onChange`, `language` props; maps `CommandType` to Monaco language (`shell`→`shell`, `python`→`python`, `node`→`javascript`, `executable`→`plaintext`); fixed height 200px; respects current theme (dark/light via `useTheme`)
-- [ ] T036 [P] [US1] Create `apps/web/src/components/env-editor.tsx` — `'use client'`; manages `{ key: string; value: string }[]` state; renders table with key/value text inputs per row; lucide `Plus` add-row button, lucide `X` remove-row button; calls `onChange(Record<string, string>)` on any change; no emoji
-- [ ] T037 [US1] Create `apps/web/src/components/task-form.tsx` — `'use client'`; controlled form fields: `name` (text), `description` (textarea), `commandType` (select), `command` via `ScriptEditor`, `parameters` (textarea, one per line → split to array), `cronExpression` (text input + `CronHelper` below), `env` via `EnvEditor`, `enabled` (toggle); `onSubmit: (input: CreateTaskInput) => void` prop; shows field validation errors
-- [ ] T038 [P] [US1] Create `apps/web/src/components/task-list.tsx` — `'use client'`; accepts `tasks: Task[]` prop; renders table with columns: Name, Schedule, Status (lucide `Play`/`Pause` icon + "Enabled"/"Paused" label), Created; row links to `/tasks/[id]`; no action buttons yet (added in US2)
-- [ ] T039 [US1] Create `apps/web/src/app/(dashboard)/tasks/page.tsx` — Server Component; calls `listTasksAction()`; renders `TaskList` with tasks; lucide `Plus`-icon "New Task" link to `/tasks/new`
-- [ ] T040 [US1] Create `apps/web/src/app/(dashboard)/tasks/new/page.tsx` — Server Component; renders `TaskForm`; on submit calls `createTaskAction`; on success `redirect('/tasks')`; shows error message on failure
+- [x] T033 [P] [US1] Create `apps/web/src/actions/tasks.ts` — server actions `listTasksAction(): Promise<Task[]>` and `createTaskAction(input: CreateTaskInput): Promise<{ ok: true } | { error: string }>`; each calls `createTrpcClient(await getSessionToken()).tasks.*`
+- [x] T034 [P] [US1] Create `apps/web/src/components/cron-help.tsx` — `'use client'`; accepts `value: string` prop; debounces 200ms; calls `cronstrue.toString(value, { throwExceptionOnParseError: false })`; renders human-readable explanation or validation error in styled text below input; no emoji — use lucide `Clock` icon
+- [x] T035 [P] [US1] Create `apps/web/src/components/script-editor.tsx` — `'use client'`; `dynamic(() => import('@monaco-editor/react'), { ssr: false })`; accepts `value`, `onChange`, `language` props; maps `CommandType` to Monaco language (`shell`→`shell`, `python`→`python`, `node`→`javascript`, `executable`→`plaintext`); fixed height 200px; respects current theme (dark/light via `useTheme`)
+- [x] T036 [P] [US1] Create `apps/web/src/components/env-editor.tsx` — `'use client'`; manages `{ key: string; value: string }[]` state; renders table with key/value text inputs per row; lucide `Plus` add-row button, lucide `X` remove-row button; calls `onChange(Record<string, string>)` on any change; no emoji
+- [x] T037 [US1] Create `apps/web/src/components/task-form.tsx` — `'use client'`; controlled form fields: `name` (text), `description` (textarea), `commandType` (select), `command` via `ScriptEditor`, `parameters` (textarea, one per line → split to array), `cronExpression` (text input + `CronHelper` below), `env` via `EnvEditor`, `enabled` (toggle); `onSubmit: (input: CreateTaskInput) => void` prop; shows field validation errors
+- [x] T038 [P] [US1] Task list UI implemented as `task-row.tsx` + `task-actions.tsx` components (per-row pattern instead of monolithic task-list component); renders Name, Schedule, Status with lucide icons; row links to `/tasks/[id]`
+- [x] T039 [US1] Task list page implemented at `apps/web/src/app/(dashboard)/page.tsx` — Server Component; calls tRPC `tasks.list`; renders task rows; lucide `Plus`-icon "New Task" link to `/tasks/new`; empty state inline
+- [x] T040 [US1] Create `apps/web/src/app/(dashboard)/tasks/new/page.tsx` — Server Component; renders `TaskForm`; on submit calls `createTaskAction`; on success redirects to dashboard; shows error message on failure
 
 **Checkpoint**: US1 independently functional. Full create-schedule-execute-verify flow works.
 
@@ -118,10 +118,10 @@ No user story work can begin until this phase is complete.
 
 **Independent Test**: From task list, click "Run Now" on a task — execution appears in history within 3s. Click "Pause" — task stops scheduling. Click "Resume" — task resumes. Click "Delete" — task disappears from list.
 
-- [ ] T041 [US2] Update `apps/web/src/app/actions/tasks.ts` — add `updateTaskAction(input: UpdateTaskInput)`, `deleteTaskAction(id: string)`, `triggerTaskAction(id: string)`, `pauseTaskAction(id: string)`, `resumeTaskAction(id: string)` server actions calling tRPC
-- [ ] T042 [US2] Update `apps/web/src/components/task-list.tsx` — add per-row action buttons using `useTransition` for pending state: "Run Now" (lucide `Play`), "Pause"/"Resume" (lucide `Pause`/`Play` toggled by `task.enabled`), "Edit" (lucide `Pencil` links to `/tasks/[id]/edit`), "Delete" (lucide `Trash2` with confirmation); call corresponding server actions
-- [ ] T043 [P] [US2] Create `apps/web/src/app/(dashboard)/tasks/[id]/edit/page.tsx` — Server Component; fetch task via `getTaskAction(params.id)`; render `TaskForm` pre-populated; on submit calls `updateTaskAction`; on success `redirect('/tasks')`
-- [ ] T044 [P] [US2] Create `apps/web/src/app/actions/tasks.ts` addition — add `getTaskAction(id: string): Promise<Task>` (used by edit page and detail page)
+- [x] T041 [US2] Update `apps/web/src/actions/tasks.ts` — add `updateTaskAction(input: UpdateTaskInput)`, `deleteTaskAction(id: string)`, `triggerTaskAction(id: string)`, `pauseTaskAction(id: string)`, `resumeTaskAction(id: string)` server actions calling tRPC
+- [x] T042 [US2] Task action buttons implemented in `task-actions.tsx` and `task-row.tsx` with `useTransition` for pending state: "Run Now", "Pause"/"Resume", "Edit" link, "Delete" with confirmation; call corresponding server actions
+- [x] T043 [US2] Create `apps/web/src/app/(dashboard)/tasks/[id]/edit/page.tsx` — Server Component; fetch task via `getTaskAction(params.id)`; render `TaskForm` pre-populated; on submit calls `updateTaskAction`; on success redirects to dashboard
+- [x] T044 [US2] Add `getTaskAction(id: string): Promise<Task>` to `apps/web/src/actions/tasks.ts` (used by edit page and detail page)
 
 **Checkpoint**: US2 independently functional. All task management actions work; scheduler reflects changes immediately.
 
@@ -133,10 +133,10 @@ No user story work can begin until this phase is complete.
 
 **Independent Test**: Run a task manually. Open `/tasks/[id]`. Verify execution list shows the run with status, duration, and timestamp. Click the row. Verify stdout output is displayed.
 
-- [ ] T045 [US3] Update `apps/web/src/app/actions/tasks.ts` — add `listExecutionsAction(taskId: string, limit?: number): Promise<Execution[]>` and `getExecutionAction(id: string): Promise<Execution>` server actions
-- [ ] T046 [P] [US3] Create `apps/web/src/components/execution-list.tsx` — `'use client'`; accepts `executions: Execution[]` and `onSelect: (e: Execution) => void` props; table with columns: Status (colored lucide icon: `CheckCircle2` success, `XCircle` failed, `SkipForward` skipped, `AlertCircle` interrupted), Started, Duration (ms → human e.g. "1.2s"), Exit Code; row click calls `onSelect`
-- [ ] T047 [P] [US3] Create `apps/web/src/components/execution-log.tsx` — `'use client'`; accepts `execution: Execution` prop; renders exit code badge, stdout in scrollable `<pre>` (max-height 400px), stderr in scrollable `<pre>`; shows skip reason if `status === 'skipped'`; lucide `Terminal` icon header; no emoji
-- [ ] T048 [US3] Create `apps/web/src/app/(dashboard)/tasks/[id]/page.tsx` — Server Component; fetch task via `getTaskAction(params.id)` and executions via `listExecutionsAction(params.id)`; render task summary card (name, schedule, status, commandType); render `ExecutionList`; on row select show `ExecutionLog` via `useState` in a client wrapper component
+- [x] T045 [US3] Update `apps/web/src/actions/tasks.ts` — add `listExecutionsAction(taskId: string, limit?: number): Promise<Execution[]>` and `getExecutionAction(id: string): Promise<Execution>` server actions
+- [x] T046 [P] [US3] Create `apps/web/src/components/execution-list.tsx` — `'use client'`; accepts `executions: Execution[]` prop; table with Status (colored lucide icon), Started, Duration; expandable rows show stdout/stderr inline (combines T046 + T047 into one component)
+- [x] T047 [P] [US3] Execution log display merged into `execution-list.tsx` as expandable rows — stdout in scrollable `<pre>`, stderr in scrollable `<pre>`, skip reason shown; no separate `execution-log.tsx` needed
+- [x] T048 [US3] Create `apps/web/src/app/(dashboard)/tasks/[id]/page.tsx` — Server Component; fetch task via `getTaskAction(params.id)` and executions via `listExecutionsAction(params.id)`; render task summary card; render `ExecutionList`
 
 **Checkpoint**: US3 independently functional. All execution history and log viewing works.
 
@@ -146,13 +146,13 @@ No user story work can begin until this phase is complete.
 
 **Purpose**: Dark/light mode, empty states, loading states, final type/lint validation.
 
-- [ ] T049 [P] Create `apps/web/src/components/theme-toggle.tsx` — `'use client'`; cycles `light → dark → system` using `useTheme` from `next-themes`; renders lucide `Sun` (light), `Moon` (dark), `Monitor` (system); no emoji; accessible `aria-label`
-- [ ] T050 Update `apps/web/src/app/(dashboard)/layout.tsx` — replace theme toggle placeholder with `<ThemeToggle />` component
-- [ ] T051 [P] Add dark mode overrides to `apps/web/src/app/globals.css` — ensure `.dark` class CSS custom properties provide sufficient contrast for all palette variables defined in T025
-- [ ] T052 [P] Add empty state to `apps/web/src/app/(dashboard)/tasks/page.tsx` — if `tasks.length === 0`, render centered lucide `CalendarX2` icon + "No tasks yet" heading + "New Task" link; no emoji
-- [ ] T053 [P] Add `loading.tsx` files at `apps/web/src/app/(dashboard)/tasks/loading.tsx` and `apps/web/src/app/(dashboard)/tasks/[id]/loading.tsx` — render lucide `Loader2` spinning icon as page loading state
-- [ ] T054 Run `turbo check-types` from repo root — fix all TypeScript errors until zero remain
-- [ ] T055 Run `turbo lint` from repo root — fix all ESLint warnings/errors until zero remain (`--max-warnings 0`)
+- [x] T049 [P] Create `apps/web/src/components/theme-toggle.tsx` — `'use client'`; cycles `light → dark → system` using `useTheme` from `next-themes`; renders lucide `Sun` (light), `Moon` (dark), `Monitor` (system); no emoji; accessible `aria-label`
+- [x] T050 Update `apps/web/src/app/(dashboard)/layout.tsx` — replace theme toggle placeholder with `<ThemeToggle />` component
+- [x] T051 [P] Add dark mode overrides to `apps/web/src/app/globals.css` — ensure `.dark` class CSS custom properties provide sufficient contrast for all palette variables defined in T025
+- [x] T052 [P] Empty state implemented in `apps/web/src/app/(dashboard)/page.tsx` — if `tasks.length === 0`, render "No tasks yet" message + "New Task" link; no emoji
+- [x] T053 [P] Add `loading.tsx` files at `apps/web/src/app/(dashboard)/tasks/loading.tsx` and `apps/web/src/app/(dashboard)/tasks/[id]/loading.tsx` — render lucide `Loader2` spinning icon as page loading state
+- [x] T054 Run `turbo check-types` from repo root — fix all TypeScript errors until zero remain
+- [x] T055 Run `turbo lint` from repo root — fix all ESLint warnings/errors until zero remain (`--max-warnings 0`)
 
 **Checkpoint**: All 7 success criteria verifiable. Dark and light modes work on all screens.
 

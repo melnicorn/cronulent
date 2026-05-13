@@ -130,6 +130,7 @@ interface IExecutionRepository {
   create(input: Omit<Execution, 'id'>): Promise<Execution>
   update(input: Pick<Execution, 'id'> & Partial<Execution>): Promise<Execution>
   findRunning(): Promise<Execution[]>  // used at startup to mark interrupted
+  deleteByTaskId(taskId: string): Promise<void>  // used by tasks.delete
 }
 ```
 
@@ -148,6 +149,25 @@ interface ISchedulerService {
   triggerNow(taskId: string): Promise<Execution>  // manual run
 }
 ```
+
+---
+
+## AppContext
+
+Defined in `packages/common/src/router/context.ts`. Injected into every tRPC procedure by `createContext` in `apps/scheduler/src/http.ts`.
+
+```typescript
+interface AppContext {
+  taskRepo: ITaskRepository
+  executionRepo: IExecutionRepository
+  schedulerService: ISchedulerService
+  token: string | undefined
+  verifyPassword(input: string): Promise<boolean>  // injected by http.ts from ../auth.ts
+  signToken(sub: string): Promise<string>           // injected by http.ts from ../auth.ts
+}
+```
+
+`verifyPassword` and `signToken` are concrete functions from `apps/scheduler/src/auth.ts` passed into context at server startup — the router in `@repo/common` never imports from `apps/scheduler` directly.
 
 ---
 
