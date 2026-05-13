@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-const PUBLIC_PATHS = ['/login', '/api']
+const PUBLIC_PATHS = ['/login', '/setup', '/api']
 
 export function proxy(request: NextRequest) {
   const token = request.cookies.get('cronulent_token')?.value

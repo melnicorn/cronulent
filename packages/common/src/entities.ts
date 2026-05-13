@@ -10,6 +10,7 @@ export interface Task {
   command: string
   parameters: string[]
   cronExpression: string
+  dependencies: string[]
   env: Record<string, string>
   enabled: boolean
   createdAt: string

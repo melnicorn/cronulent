@@ -7,8 +7,8 @@ services:
       - "3001:3001"
     volumes:
       - scheduler-data:/app/apps/scheduler/data
-    env_file:
-      - apps/scheduler/.env
+    environment:
+      - PORT=3001
     restart: unless-stopped
 
   web:

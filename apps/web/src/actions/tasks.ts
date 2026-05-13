@@ -34,6 +34,12 @@ export async function triggerTaskAction(id: string) {
   return result
 }
 
+export async function getExecutionStatusAction(id: string) {
+  const client = await getTrpcClient()
+  const execution = await client.executions.get.query({ id })
+  return execution.status
+}
+
 export async function pauseTaskAction(id: string) {
   const client = await getTrpcClient()
   const task = await client.tasks.pause.mutate({ id })

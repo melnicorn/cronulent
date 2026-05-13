@@ -2,9 +2,9 @@
 
 import Link from 'next/link'
 import { useTransition } from 'react'
-import { Play, Pause, TriangleAlert } from 'lucide-react'
+import { Play, Pause, TriangleAlert, Trash2 } from 'lucide-react'
 import type { Task } from '@repo/common'
-import { pauseTaskAction, resumeTaskAction, triggerTaskAction } from '../actions/tasks'
+import { pauseTaskAction, resumeTaskAction, triggerTaskAction, deleteTaskAction } from '../actions/tasks'
 import cronstrue from 'cronstrue'
 
 interface Props {
@@ -47,6 +47,18 @@ export function TaskRow({ task }: Props) {
           className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-40"
         >
           <Play size={14} />
+        </button>
+        <button
+          disabled={isPending}
+          title="Delete"
+          onClick={() => {
+            if (confirm(`Delete "${task.name}"? This cannot be undone.`)) {
+              startTransition(async () => { await deleteTaskAction(task.id) })
+            }
+          }}
+          className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-accent transition-colors disabled:opacity-40"
+        >
+          <Trash2 size={14} />
         </button>
         {task.enabled ? (
           <button

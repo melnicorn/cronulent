@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Info } from 'lucide-react'
+import cronstrue from 'cronstrue'
 import type { Task, CommandType } from '@repo/common'
 import { createTaskAction, updateTaskAction } from '../actions/tasks'
 import { CronHelp } from './cron-help'
@@ -32,6 +33,7 @@ export function TaskForm({ task }: Props) {
   const [parameters, setParameters] = useState(task?.parameters.join('\n') ?? '')
   const [cronExpression, setCronExpression] = useState(task?.cronExpression ?? '* * * * *')
   const [env, setEnv] = useState<Record<string, string>>(task?.env ?? {})
+  const [dependencies, setDependencies] = useState(task?.dependencies.join('\n') ?? '')
   const [enabled, setEnabled] = useState(task?.enabled ?? true)
   const [showCronHelp, setShowCronHelp] = useState(false)
 
@@ -45,6 +47,7 @@ export function TaskForm({ task }: Props) {
       commandType,
       command,
       parameters: parameters.split('\n').map(p => p.trim()).filter(Boolean),
+      dependencies: dependencies.split('\n').map(d => d.trim()).filter(Boolean),
       cronExpression,
       env,
       enabled,
@@ -116,6 +119,7 @@ export function TaskForm({ task }: Props) {
           className={inputCls}
           placeholder="* * * * *"
         />
+        <CronDescription expression={cronExpression} />
         {showCronHelp && <CronHelp expression={cronExpression} />}
       </Field>
 
@@ -131,10 +135,37 @@ export function TaskForm({ task }: Props) {
           <ScriptEditor
             value={command}
             onChange={setCommand}
+            onBlur={v => {
+              const detected = detectEnvVars(v, commandType)
+              if (detected.length > 0) {
+                setEnv(prev => {
+                  const next = { ...prev }
+                  for (const key of detected) {
+                    if (!(key in next)) next[key] = ''
+                  }
+                  return next
+                })
+              }
+            }}
             language={commandType === 'python-uv' ? 'python' : 'javascript'}
           />
         )}
       </Field>
+
+      {(commandType === 'python-uv' || commandType === 'node-volta') && (
+        <Field
+          label="Dependencies (one per line)"
+          hint={commandType === 'python-uv' ? 'e.g. requests, httpx>=0.27' : 'e.g. axios, zod@3'}
+        >
+          <textarea
+            value={dependencies}
+            onChange={e => setDependencies(e.target.value)}
+            rows={3}
+            className={`${inputCls} resize-none font-mono`}
+            placeholder={commandType === 'python-uv' ? 'requests\nhttpx>=0.27' : 'axios\nzod@3'}
+          />
+        </Field>
+      )}
 
       <Field label="Parameters (one per line)">
         <textarea
@@ -179,11 +210,53 @@ export function TaskForm({ task }: Props) {
   )
 }
 
+function CronDescription({ expression }: { expression: string }) {
+  try {
+    const text = cronstrue.toString(expression, { throwExceptionOnParseError: true })
+    return <p className="text-xs text-muted-foreground mt-1">{text}</p>
+  } catch {
+    return expression.trim()
+      ? <p className="text-xs text-destructive mt-1">Invalid expression</p>
+      : null
+  }
+}
+
+function detectEnvVars(code: string, commandType: CommandType): string[] {
+  const vars = new Set<string>()
+  const patterns: RegExp[] = []
+
+  if (commandType === 'shell') {
+    // $VAR and ${VAR}, excluding special shell vars ($0-$9, $#, $@, $*, $?, $$, $!)
+    patterns.push(/\$\{?([A-Z_][A-Z0-9_]+)\}?/g)
+  } else if (commandType === 'python-uv') {
+    patterns.push(
+      /os\.environ\[['"]([A-Z_][A-Z0-9_]*)['"]\]/g,
+      /os\.environ\.get\(['"]([A-Z_][A-Z0-9_]*)['"]/g,
+      /os\.getenv\(['"]([A-Z_][A-Z0-9_]*)['"]/g,
+      /environ\[['"]([A-Z_][A-Z0-9_]*)['"]\]/g,
+    )
+  } else if (commandType === 'node-volta') {
+    patterns.push(
+      /process\.env\.([A-Z_][A-Z0-9_]*)/g,
+      /process\.env\[['"]([A-Z_][A-Z0-9_]*)['"]\]/g,
+    )
+  }
+
+  for (const re of patterns) {
+    for (const m of code.matchAll(re)) {
+      vars.add(m[1]!)
+    }
+  }
+
+  return [...vars]
+}
+
 const inputCls = 'w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary'
 
-function Field({ label, required, action, children }: {
+function Field({ label, required, hint, action, children }: {
   label: string
   required?: boolean
+  hint?: string
   action?: React.ReactNode
   children: React.ReactNode
 }) {
@@ -194,6 +267,7 @@ function Field({ label, required, action, children }: {
           {label}
           {required && <span className="text-destructive ml-0.5">*</span>}
         </label>
+        {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
         {action}
       </div>
       {children}

@@ -1,159 +1,94 @@
-# Turborepo starter
+# Cronulent
 
-This Turborepo starter is maintained by the Turborepo core team.
+A self-hosted cron task manager. Schedule and run shell scripts, Python (via uv), and Node.js (via Volta) tasks on a cron schedule, with a web UI to manage everything.
 
-## Using this example
+## What's inside
 
-Run the following command:
+| Package | Description |
+|---|---|
+| `apps/scheduler` | Node.js backend — tRPC API, cron scheduling, task execution |
+| `apps/web` | Next.js frontend — task management UI |
+| `packages/common` | Shared TypeScript types, Zod schemas, tRPC router |
 
-```sh
-npx create-turbo@latest
+## Running with Docker (recommended)
+
+**Prerequisites:** Docker
+
+**Start both services:**
+
+```bash
+docker compose up
 ```
 
-## What's inside?
+On first run, open http://localhost:3000 and you'll be prompted to create an admin password. Credentials are stored in the persistent data volume — no setup script needed.
 
-This Turborepo includes the following packages/apps:
+- Web UI: http://localhost:3000
+- Scheduler API: http://localhost:3001
 
-### Apps and Packages
+Task data is persisted in a Docker volume (`scheduler-data`).
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+## Running locally
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+**Prerequisites:** Node.js 22.6+, pnpm, [Volta](https://volta.sh), [uv](https://docs.astral.sh/uv/)
 
-### Utilities
+**Install dependencies:**
 
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo build
+```bash
+pnpm install
 ```
 
-Without global `turbo`, use your package manager:
+Start the scheduler and web app, then open http://localhost:3000 — you'll be prompted to create an admin password on first run.
 
-```sh
-cd my-turborepo
-npx turbo build
-pnpm dlx turbo build
-pnpm exec turbo build
+**Start the scheduler:**
+
+```bash
+cd apps/scheduler
+pnpm dev
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+**Start the web UI** (separate terminal):
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo build --filter=docs
+```bash
+cd apps/web
+pnpm dev
 ```
 
-Without global `turbo`:
+- Web UI: http://localhost:3000
+- Scheduler API: http://localhost:3001
 
-```sh
-npx turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
+Set `SCHEDULER_URL` in the web app's environment if the scheduler is running somewhere other than `http://localhost:3001`.
+
+## Task types
+
+| Type | Runtime | Command field |
+|---|---|---|
+| Shell | `/bin/sh` | Script content |
+| Python (uv) | `uv run` | Script content |
+| Node.js (Volta) | `volta run node` | Script content |
+| Executable | Direct | Path to binary |
+
+Shell, Python, and Node.js tasks are written as inline scripts in the editor. Each task gets its own isolated directory under `data/scripts/{taskId}/` with its own environment. Environment variables can be set per-task and are merged with the system environment at runtime.
+
+If a task's cron fires while a previous execution is still running, the new execution is skipped and recorded with a `skipped` status.
+
+## Architecture
+
+```
+apps/web (Next.js)
+  └── server actions → tRPC client → apps/scheduler
+
+apps/scheduler (Node.js)
+  ├── tRPC HTTP server (@trpc/server/adapters/standalone)
+  ├── node-cron scheduler
+  ├── task executor (subprocess per execution)
+  ├── environment manager (uv / volta setup per task)
+  └── JSON5 file storage (data/tasks.json5, data/executions.json5)
+
+packages/common
+  ├── entities & Zod schemas
+  ├── repository interfaces
+  ├── tRPC router (auth, tasks, executions)
+  └── AppContext interface
 ```
 
-### Develop
-
-To develop all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo dev
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo dev
-pnpm exec turbo dev
-pnpm exec turbo dev
-```
-
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo dev --filter=web
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo login
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo login
-pnpm exec turbo login
-pnpm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo link
-pnpm exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+Authentication is token-based (JWT, HS256). The web app stores the token in an httpOnly cookie and sends it as a `Bearer` token on each tRPC request.

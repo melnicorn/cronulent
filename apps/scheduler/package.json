@@ -7,9 +7,8 @@
     "node": ">=22.6"
   },
   "scripts": {
-    "dev": "node --env-file=.env --watch --import tsx/esm src/index.ts",
+    "dev": "node --watch --import tsx/esm src/index.ts",
     "start": "node --import tsx/esm src/index.ts",
-    "setup-password": "tsx scripts/setup-password.ts",
     "lint": "eslint . --max-warnings 0",
     "check-types": "tsc --noEmit"
   },

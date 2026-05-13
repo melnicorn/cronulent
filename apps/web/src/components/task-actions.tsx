@@ -1,10 +1,10 @@
 'use client'
 
-import { useTransition } from 'react'
+import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Play, Pause, CirclePlay, Trash2 } from 'lucide-react'
+import { Play, Pause, CirclePlay, Trash2, Loader2 } from 'lucide-react'
 import type { Task } from '@repo/common'
-import { triggerTaskAction, pauseTaskAction, resumeTaskAction, deleteTaskAction } from '../actions/tasks'
+import { triggerTaskAction, pauseTaskAction, resumeTaskAction, deleteTaskAction, getExecutionStatusAction } from '../actions/tasks'
 
 interface Props {
   task: Task
@@ -12,22 +12,41 @@ interface Props {
 
 export function TaskActions({ task }: Props) {
   const [isPending, startTransition] = useTransition()
+  const [isPolling, setIsPolling] = useState(false)
   const router = useRouter()
+
+  async function handleRun() {
+    setIsPolling(true)
+    try {
+      const execution = await triggerTaskAction(task.id)
+      router.refresh()
+      while (true) {
+        await new Promise(r => setTimeout(r, 1500))
+        const status = await getExecutionStatusAction(execution.id)
+        router.refresh()
+        if (status !== 'running') break
+      }
+    } finally {
+      setIsPolling(false)
+    }
+  }
+
+  const busy = isPending || isPolling
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
       <button
-        disabled={isPending}
-        onClick={() => startTransition(() => triggerTaskAction(task.id).then(() => router.refresh()))}
+        disabled={busy}
+        onClick={handleRun}
         className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border border-border text-foreground hover:bg-accent transition-colors disabled:opacity-50"
       >
-        <Play size={14} />
-        Run now
+        {isPolling ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
+        {isPolling ? 'Running…' : 'Run now'}
       </button>
 
       {task.enabled ? (
         <button
-          disabled={isPending}
+          disabled={busy}
           onClick={() => startTransition(() => pauseTaskAction(task.id).then(() => router.refresh()))}
           className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border border-border text-foreground hover:bg-accent transition-colors disabled:opacity-50"
         >
@@ -36,7 +55,7 @@ export function TaskActions({ task }: Props) {
         </button>
       ) : (
         <button
-          disabled={isPending}
+          disabled={busy}
           onClick={() => startTransition(() => resumeTaskAction(task.id).then(() => router.refresh()))}
           className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border border-border text-foreground hover:bg-accent transition-colors disabled:opacity-50"
         >
@@ -46,7 +65,7 @@ export function TaskActions({ task }: Props) {
       )}
 
       <button
-        disabled={isPending}
+        disabled={busy}
         onClick={() => {
           if (!confirm(`Delete "${task.name}"? This cannot be undone.`)) return
           startTransition(() => deleteTaskAction(task.id))

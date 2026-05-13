@@ -26,8 +26,10 @@ export function startHttpServer(opts: {
         schedulerService: opts.schedulerService,
         userId,
         auth: {
+          isInitialized: () => opts.auth.isInitialized(),
           verifyPassword: (pw) => opts.auth.verifyPassword(pw),
           signToken: (sub) => opts.auth.signToken(sub),
+          initialize: (password) => opts.auth.initialize(password),
         },
       }
     },

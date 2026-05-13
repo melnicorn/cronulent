@@ -7,7 +7,9 @@ export interface AppContext {
   schedulerService: ISchedulerService
   userId: string | null
   auth: {
+    isInitialized(): boolean
     verifyPassword(password: string): Promise<boolean>
     signToken(sub: string): Promise<{ token: string; expiresAt: string }>
+    initialize(password: string): Promise<void>
   }
 }

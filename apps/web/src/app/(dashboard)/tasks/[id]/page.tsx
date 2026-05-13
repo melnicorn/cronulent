@@ -4,6 +4,7 @@ import { getTrpcClient } from '../../../../lib/trpc'
 import { Pencil } from 'lucide-react'
 import { TaskActions } from '../../../../components/task-actions'
 import { ExecutionList } from '../../../../components/execution-list'
+import { ScriptViewer } from '../../../../components/script-viewer'
 import cronstrue from 'cronstrue'
 
 interface Props {
@@ -53,12 +54,28 @@ export default async function TaskDetailPage({ params }: Props) {
       <div className="rounded-lg border border-border divide-y divide-border">
         <Row label="Schedule">{humanCron(task.cronExpression)} <code className="ml-2 text-xs text-muted-foreground font-mono">{task.cronExpression}</code></Row>
         <Row label="Command type">{task.commandType}</Row>
-        <Row label="Command"><code className="text-xs font-mono break-all">{task.command}</code></Row>
+        {task.commandType === 'executable' ? (
+          <Row label="Command"><code className="text-xs font-mono break-all">{task.command}</code></Row>
+        ) : (
+          <div className="px-4 py-3 space-y-2">
+            <span className="text-sm text-muted-foreground">Script</span>
+            <ScriptViewer value={task.command} commandType={task.commandType} />
+          </div>
+        )}
         {task.parameters.length > 0 && (
           <Row label="Parameters">
             <div className="flex flex-wrap gap-1">
               {task.parameters.map((p, i) => (
                 <code key={i} className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">{p}</code>
+              ))}
+            </div>
+          </Row>
+        )}
+        {task.dependencies.length > 0 && (
+          <Row label="Dependencies">
+            <div className="flex flex-wrap gap-1">
+              {task.dependencies.map((d, i) => (
+                <code key={i} className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">{d}</code>
               ))}
             </div>
           </Row>

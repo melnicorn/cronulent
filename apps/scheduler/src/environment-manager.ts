@@ -16,6 +16,9 @@ export class EnvironmentManager {
 
   async setup(task: Task): Promise<void> {
     const dir = this.taskDir(task.id)
+
+    // Always blow away and rebuild so deps are fresh after any update
+    await fs.rm(dir, { recursive: true, force: true })
     await fs.mkdir(dir, { recursive: true })
 
     switch (task.commandType) {
@@ -23,18 +26,30 @@ export class EnvironmentManager {
         await fs.writeFile(path.join(dir, 'script.sh'), task.command, { mode: 0o755 })
         break
 
-      case 'python-uv':
+      case 'python-uv': {
+        const deps = task.dependencies.map(d => `    "${d}"`).join(',\n')
+        const pyproject = [
+          '[project]',
+          'name = "task"',
+          'version = "0.1.0"',
+          'requires-python = ">=3.8"',
+          `dependencies = [`,
+          deps ? `${deps},` : '',
+          ']',
+        ].join('\n')
+        await fs.writeFile(path.join(dir, 'pyproject.toml'), pyproject)
         await fs.writeFile(path.join(dir, 'script.py'), task.command)
+        await runCommand('uv', ['sync'], dir)
         break
+      }
 
       case 'node-volta': {
-        const pkgPath = path.join(dir, 'package.json')
-        const isNew = await fs.access(pkgPath).then(() => false).catch(() => true)
-        if (isNew) {
-          await fs.writeFile(pkgPath, JSON.stringify({ type: 'module' }, null, 2))
-          await runCommand('volta', ['pin', 'node@lts'], dir)
-        }
+        await fs.writeFile(path.join(dir, 'package.json'), JSON.stringify({ type: 'module' }, null, 2))
         await fs.writeFile(path.join(dir, 'script.mjs'), task.command)
+        await runCommand('volta', ['pin', 'node@lts'], dir)
+        if (task.dependencies.length > 0) {
+          await runCommand('volta', ['run', 'npm', 'install', ...task.dependencies], dir)
+        }
         break
       }
 
@@ -59,7 +74,8 @@ export class EnvironmentManager {
       case 'shell':
         return { cmd: '/bin/sh', args: ['script.sh', ...params], cwd: dir }
       case 'python-uv':
-        return { cmd: 'uv', args: ['run', 'script.py', ...params], cwd: dir }
+        // --no-sync: skip environment sync, use what setup() already installed
+        return { cmd: 'uv', args: ['run', '--no-sync', 'script.py', ...params], cwd: dir }
       case 'node-volta':
         return { cmd: 'volta', args: ['run', 'node', 'script.mjs', ...params], cwd: dir }
       case 'executable':

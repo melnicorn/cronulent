@@ -1,8 +1,13 @@
 import { getSessionToken } from '../../lib/session'
+import { getTrpcClient } from '../../lib/trpc'
 import { redirect } from 'next/navigation'
 import { LoginForm } from '../../components/login-form'
 
 export default async function LoginPage() {
+  const client = await getTrpcClient()
+  const { initialized } = await client.system.status.query()
+  if (!initialized) redirect('/setup')
+
   const token = await getSessionToken()
   if (token) redirect('/')
 
