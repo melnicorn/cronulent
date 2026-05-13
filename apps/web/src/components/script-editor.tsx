@@ -16,7 +16,7 @@ export function ScriptEditor({ value, onChange, onBlur, language = 'shell' }: Pr
   const { resolvedTheme } = useTheme()
 
   return (
-    <div className="rounded-md border border-input overflow-hidden">
+    <div className="rounded-md border border-input overflow-hidden bg-card">
       <MonacoEditor
         height="200px"
         language={language}

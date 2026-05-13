@@ -6,6 +6,7 @@ import { TaskActions } from '../../../../components/task-actions'
 import { ExecutionList } from '../../../../components/execution-list'
 import { ScriptViewer } from '../../../../components/script-viewer'
 import cronstrue from 'cronstrue'
+import { CronExpressionParser } from 'cron-parser'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -30,6 +31,16 @@ export default async function TaskDetailPage({ params }: Props) {
     }
   }
 
+  function nextRun(expr: string) {
+    try {
+      return CronExpressionParser.parse(expr).next().toDate().toLocaleString()
+    } catch {
+      return null
+    }
+  }
+
+  const next = nextRun(task.cronExpression)
+
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div className="flex items-start justify-between gap-4">
@@ -51,8 +62,11 @@ export default async function TaskDetailPage({ params }: Props) {
         </Link>
       </div>
 
-      <div className="rounded-lg border border-border divide-y divide-border">
+      <div className="rounded-lg border border-border divide-y divide-border bg-card">
         <Row label="Schedule">{humanCron(task.cronExpression)} <code className="ml-2 text-xs text-muted-foreground font-mono">{task.cronExpression}</code></Row>
+        {next && (
+          <Row label="Next run" suppressHydrationWarning>{next}</Row>
+        )}
         <Row label="Command type">{task.commandType}</Row>
         {task.commandType === 'executable' ? (
           <Row label="Command"><code className="text-xs font-mono break-all">{task.command}</code></Row>
@@ -108,11 +122,11 @@ export default async function TaskDetailPage({ params }: Props) {
   )
 }
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
+function Row({ label, children, suppressHydrationWarning }: { label: string; children: React.ReactNode; suppressHydrationWarning?: boolean }) {
   return (
     <div className="flex gap-4 px-4 py-3">
       <span className="text-sm text-muted-foreground w-32 shrink-0">{label}</span>
-      <span className="text-sm text-foreground flex-1">{children}</span>
+      <span className="text-sm text-foreground flex-1" suppressHydrationWarning={suppressHydrationWarning}>{children}</span>
     </div>
   )
 }

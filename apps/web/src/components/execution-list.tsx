@@ -14,7 +14,7 @@ export function ExecutionList({ executions }: Props) {
   }
 
   return (
-    <div className="rounded-lg border border-border divide-y divide-border">
+    <div className="rounded-lg border border-border divide-y divide-border bg-card">
       {executions.map(e => (
         <ExecutionRow key={e.id} execution={e} />
       ))}
@@ -33,7 +33,7 @@ function ExecutionRow({ execution: e }: { execution: Execution }) {
         onClick={() => hasOutput && setExpanded(v => !v)}
       >
         <StatusIcon status={e.status} />
-        <span className="text-sm text-foreground flex-1">
+        <span className="text-sm text-foreground flex-1" suppressHydrationWarning>
           {new Date(e.startedAt).toLocaleString()}
         </span>
         <span className="text-xs text-muted-foreground">
