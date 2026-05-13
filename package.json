@@ -17,6 +17,9 @@
     "typescript": "5.9.2"
   },
   "packageManager": "pnpm@11.1.1",
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild", "sharp"]
+  },
   "engines": {
     "node": ">=18"
   }
