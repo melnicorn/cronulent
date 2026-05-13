@@ -1,21 +1,17 @@
 <!--
 ## Sync Impact Report
 
-**Version Change**: 1.0.0 → 1.1.0 (MINOR — materially expanded Technology Standards with
-shared-package and Node.js native TypeScript guidance)
+**Version Change**: 1.1.0 → 1.2.0 (MINOR — new principle added)
 
-**Modified Sections**:
-- Technology Standards: added Shared Packages and Standalone Node.js App subsections
+**Added Sections**:
+- VI. User-Facing Documentation: establishes that README and all user-facing docs MUST be
+  written for first-time readers with no knowledge of project history.
 
-**Modified Principle**:
-- IV. Monorepo Package Discipline: clarified that `packages/` intended for shared code
-  are source-referenced (no build step) rather than pre-compiled.
+**Modified Sections**: none
 
 **Templates**: no changes required (existing templates are unaffected)
 
-**Deferred TODOs**:
-- TODO(PROJECT_PURPOSE): `README.md` still contains the default Turborepo template text.
-  Update it with the actual product description once the project scope is defined.
+**Deferred TODOs**: none
 -->
 
 # Cronulent Constitution
@@ -76,6 +72,20 @@ ESLint violations and Prettier formatting errors MUST be resolved before merge;
 **Rationale**: Type errors caught at compile time cost nothing. Type errors in production
 are expensive. Strict typing is the minimum viable safety net for a multi-package
 monorepo where interface mismatches propagate across package boundaries.
+
+### VI. User-Facing Documentation
+
+The README and all user-facing documentation MUST be written exclusively for someone
+encountering the project for the first time with no prior knowledge of its history.
+Every sentence MUST describe the current state of the software as a standalone fact.
+
+References to prior states, removed features, or incremental changes are prohibited.
+Phrases that implicitly reference history — such as "no longer", "now uses", "replaced",
+"previously", or comparisons to a former design — MUST NOT appear.
+
+**Rationale**: Documentation that assumes historical knowledge confuses new users and
+degrades over time as the referenced history becomes irrelevant. Present-tense,
+history-free documentation serves all readers equally and ages well.
 
 ## Technology Standards
 
@@ -151,4 +161,4 @@ All feature `plan.md` files MUST include a Constitution Check gate (verified bef
 Phase 0 and re-checked after Phase 1). Complexity that appears to violate a principle
 MUST be justified in the Complexity Tracking table in `plan.md` — not silently accepted.
 
-**Version**: 1.1.0 | **Ratified**: 2026-05-12 | **Last Amended**: 2026-05-12
+**Version**: 1.2.0 | **Ratified**: 2026-05-12 | **Last Amended**: 2026-05-13

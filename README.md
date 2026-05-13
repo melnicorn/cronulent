@@ -16,10 +16,9 @@ curl -LO https://github.com/melnicorn/cronulent/releases/latest/download/docker-
 docker compose -f docker-compose.prod.yml up
 ```
 
-On first run, open http://localhost:3000 and you'll be prompted to create an admin password. Credentials are stored in the persistent data volume — no setup script needed.
+On first run, open http://localhost:3000 and you'll be prompted to create an admin password.
 
 - Web UI: http://localhost:3000
-- Scheduler API: http://localhost:3001
 
 ## What's inside
 
@@ -39,10 +38,9 @@ On first run, open http://localhost:3000 and you'll be prompted to create an adm
 docker compose up
 ```
 
-On first run, open http://localhost:3000 and you'll be prompted to create an admin password. Credentials are stored in the persistent data volume — no setup script needed.
+On first run, open http://localhost:3000 and you'll be prompted to create an admin password.
 
 - Web UI: http://localhost:3000
-- Scheduler API: http://localhost:3001
 
 Task data is persisted in a Docker volume (`scheduler-data`).
 
@@ -73,7 +71,6 @@ pnpm dev
 ```
 
 - Web UI: http://localhost:3000
-- Scheduler API: http://localhost:3001
 
 Set `SCHEDULER_URL` in the web app's environment if the scheduler is running somewhere other than `http://localhost:3001`.
 

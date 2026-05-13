@@ -1,8 +1,6 @@
 services:
   scheduler:
     image: ghcr.io/melnicorn/cronulent-scheduler:latest
-    ports:
-      - "3001:3001"
     volumes:
       - scheduler-data:/app/apps/scheduler/data
     environment:
