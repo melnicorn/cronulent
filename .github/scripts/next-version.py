@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 def get_pinned_version():
-    with open(Path(__file__).parent.parent / "package.json") as f:
+    with open(Path(__file__).parent.parent.parent / "package.json") as f:
         version = json.load(f)["version"]
     major, minor, _ = version.strip().split(".")
     return int(major), int(minor)
