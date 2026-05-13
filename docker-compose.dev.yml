@@ -1,0 +1,21 @@
+services:
+  scheduler:
+    volumes:
+      - ./apps/scheduler/src:/app/apps/scheduler/src
+      - ./packages:/app/packages
+    ports:
+      - "9229:9229"
+    environment:
+      - NODE_ENV=development
+    command: node --inspect=0.0.0.0:9229 --watch --import tsx/esm src/index.ts
+    restart: "no"
+
+  web:
+    volumes:
+      - ./apps/web/src:/app/apps/web/src
+      - ./apps/web/public:/app/apps/web/public
+      - ./packages:/app/packages
+    environment:
+      - NODE_ENV=development
+    command: pnpm dev
+    restart: "no"
