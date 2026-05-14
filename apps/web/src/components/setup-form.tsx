@@ -20,7 +20,7 @@ export function SetupForm({ serverTimezone }: { serverTimezone: string }) {
 
   useEffect(() => {
     setTimezone(serverTimezone)
-  }, [])
+  }, [serverTimezone])
 
   return (
     <form action={action} className="space-y-4">
