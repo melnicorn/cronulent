@@ -5,6 +5,7 @@ import { Pencil } from 'lucide-react'
 import { TaskActions } from '../../../../components/task-actions'
 import { ExecutionList } from '../../../../components/execution-list'
 import { ScriptViewer } from '../../../../components/script-viewer'
+import { LinkButton } from '../../../../components/link-button'
 import cronstrue from 'cronstrue'
 import { CronExpressionParser } from 'cron-parser'
 
@@ -53,13 +54,10 @@ export default async function TaskDetailPage({ params }: Props) {
           <h1 className="text-xl font-semibold text-foreground">{task.name}</h1>
           {task.description && <p className="text-sm text-muted-foreground mt-1">{task.description}</p>}
         </div>
-        <Link
-          href={`/tasks/${id}/edit`}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border border-border text-foreground hover:bg-accent transition-colors shrink-0"
-        >
+        <LinkButton href={`/tasks/${id}/edit`} variant="outline" size="sm">
           <Pencil size={14} />
           Edit
-        </Link>
+        </LinkButton>
       </div>
 
       <div className="rounded-lg border border-border divide-y divide-border bg-card">

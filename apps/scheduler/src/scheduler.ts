@@ -10,6 +10,7 @@ export class NodeCronSchedulerService implements ISchedulerService {
     private taskRepo: ITaskRepository,
     private executor: TaskExecutor,
     private envManager: EnvironmentManager,
+    private getTimezone: () => string,
   ) {}
 
   async start(): Promise<void> {
@@ -38,11 +39,16 @@ export class NodeCronSchedulerService implements ISchedulerService {
       console.warn(`Invalid cron expression for task ${task.id}: ${task.cronExpression}`)
       return
     }
-    const job = cron.schedule(task.cronExpression, () => {
-      this.executor.execute(task.id).catch(err => {
-        console.error(`Failed to execute task ${task.id}:`, err)
-      })
-    })
+    const timezone = this.getTimezone()
+    const job = cron.schedule(
+      task.cronExpression,
+      () => {
+        this.executor.execute(task.id).catch(err => {
+          console.error(`Failed to execute task ${task.id}:`, err)
+        })
+      },
+      timezone ? { timezone } : {},
+    )
     this.jobs.set(task.id, job)
   }
 

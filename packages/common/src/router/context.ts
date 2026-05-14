@@ -12,4 +12,8 @@ export interface AppContext {
     signToken(sub: string): Promise<{ token: string; expiresAt: string }>
     initialize(password: string): Promise<void>
   }
+  settings: {
+    getTimezone(): string
+    updateSettings(s: { timezone: string }): Promise<void>
+  }
 }

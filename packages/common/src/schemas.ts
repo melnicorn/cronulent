@@ -45,3 +45,9 @@ export const updateTaskInputSchema = taskSchema
 
 export type CreateTaskInput = z.infer<typeof createTaskInputSchema>
 export type UpdateTaskInput = z.infer<typeof updateTaskInputSchema>
+
+export const updateSettingsInputSchema = z.object({
+  timezone: z.string(),
+})
+
+export type UpdateSettingsInput = z.infer<typeof updateSettingsInputSchema>

@@ -35,3 +35,7 @@ export interface TokenPayload {
   iat: number
   exp: number
 }
+
+export interface SystemSettings {
+  timezone: string
+}

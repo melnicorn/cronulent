@@ -1,12 +1,14 @@
 'use client'
 
 import Link from 'next/link'
-import { useTransition } from 'react'
-import { Play, Pause, TriangleAlert, Trash2 } from 'lucide-react'
+import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
+import { Loader2, Pause, Play, TriangleAlert, Trash2 } from 'lucide-react'
 import type { Task } from '@repo/common'
-import { pauseTaskAction, resumeTaskAction, triggerTaskAction, deleteTaskAction } from '../actions/tasks'
+import { pauseTaskAction, resumeTaskAction, triggerTaskAction, deleteTaskAction, getExecutionStatusAction } from '../actions/tasks'
 import cronstrue from 'cronstrue'
 import { CronExpressionParser } from 'cron-parser'
+import { Button } from '@heroui/react'
 
 interface Props {
   task: Task
@@ -14,6 +16,25 @@ interface Props {
 
 export function TaskRow({ task }: Props) {
   const [isPending, startTransition] = useTransition()
+  const [isRunning, setIsRunning] = useState(false)
+  const router = useRouter()
+
+  async function handleRun() {
+    setIsRunning(true)
+    try {
+      const execution = await triggerTaskAction(task.id)
+      while (true) {
+        await new Promise(r => setTimeout(r, 1500))
+        const status = await getExecutionStatusAction(execution.id)
+        if (status !== 'running') break
+      }
+    } finally {
+      setIsRunning(false)
+      router.refresh()
+    }
+  }
+
+  const busy = isPending || isRunning
 
   function humanCron(expr: string) {
     try {
@@ -48,7 +69,7 @@ export function TaskRow({ task }: Props) {
           <p className="text-xs text-muted-foreground/70 mt-0.5 truncate" suppressHydrationWarning>Next: {next}</p>
         )}
       </div>
-      <div className="flex items-center gap-2 ml-4 shrink-0">
+      <div className="flex items-center gap-1 ml-4 shrink-0">
         <span
           className={`text-xs px-2 py-0.5 rounded-full ${
             task.enabled
@@ -58,44 +79,53 @@ export function TaskRow({ task }: Props) {
         >
           {task.enabled ? 'active' : 'paused'}
         </span>
-        <button
-          disabled={isPending}
-          title="Run now"
-          onClick={() => startTransition(async () => { await triggerTaskAction(task.id) })}
-          className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-40"
+        <Button
+          isIconOnly
+          variant="ghost"
+          size="sm"
+          isDisabled={busy}
+          aria-label={isRunning ? 'Running…' : 'Run now'}
+          onPress={handleRun}
         >
-          <Play size={14} />
-        </button>
-        <button
-          disabled={isPending}
-          title="Delete"
-          onClick={() => {
+          {isRunning ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
+        </Button>
+        <Button
+          isIconOnly
+          variant="ghost"
+          size="sm"
+          isDisabled={busy}
+          aria-label="Delete task"
+          className="hover:text-destructive"
+          onPress={() => {
             if (confirm(`Delete "${task.name}"? This cannot be undone.`)) {
               startTransition(async () => { await deleteTaskAction(task.id) })
             }
           }}
-          className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-accent transition-colors disabled:opacity-40"
         >
           <Trash2 size={14} />
-        </button>
+        </Button>
         {task.enabled ? (
-          <button
-            disabled={isPending}
-            title="Pause"
-            onClick={() => startTransition(async () => { await pauseTaskAction(task.id) })}
-            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-40"
+          <Button
+            isIconOnly
+            variant="ghost"
+            size="sm"
+            isDisabled={busy}
+            aria-label="Pause task"
+            onPress={() => startTransition(async () => { await pauseTaskAction(task.id) })}
           >
             <Pause size={14} />
-          </button>
+          </Button>
         ) : (
-          <button
-            disabled={isPending}
-            title="Resume"
-            onClick={() => startTransition(async () => { await resumeTaskAction(task.id) })}
-            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-40"
+          <Button
+            isIconOnly
+            variant="ghost"
+            size="sm"
+            isDisabled={busy}
+            aria-label="Resume task"
+            onPress={() => startTransition(async () => { await resumeTaskAction(task.id) })}
           >
             <TriangleAlert size={14} />
-          </button>
+          </Button>
         )}
       </div>
     </div>

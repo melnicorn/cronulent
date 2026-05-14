@@ -1,5 +1,6 @@
 'use server'
 
+import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { getTrpcClient } from '../lib/trpc'
 import { setSessionToken } from '../lib/session'
@@ -21,4 +22,10 @@ export async function initializeAction(_prev: string | null, formData: FormData)
   }
 
   redirect('/')
+}
+
+export async function updateSettingsAction(input: { timezone: string }): Promise<void> {
+  const client = await getTrpcClient()
+  await client.system.updateSettings.mutate(input)
+  revalidatePath('/settings')
 }
