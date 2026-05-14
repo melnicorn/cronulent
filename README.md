@@ -20,6 +20,13 @@ On first run, open http://localhost:3000 and you'll be prompted to create an adm
 
 - Web UI: http://localhost:3000
 
+### Updating to the latest version
+
+```bash
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up --force-recreate
+```
+
 ## What's inside
 
 | Package | Description |
