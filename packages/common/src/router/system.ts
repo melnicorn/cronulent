@@ -9,12 +9,15 @@ export const systemRouter = router({
   }),
 
   initialize: publicProcedure
-    .input(z.object({ password: z.string().min(8) }))
+    .input(z.object({ password: z.string().min(8), timezone: z.string().optional() }))
     .mutation(async ({ input, ctx }) => {
       if (ctx.auth.isInitialized()) {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Already initialized' })
       }
       await ctx.auth.initialize(input.password)
+      if (input.timezone) {
+        await ctx.settings.updateSettings({ timezone: input.timezone })
+      }
       return { ok: true as const }
     }),
 

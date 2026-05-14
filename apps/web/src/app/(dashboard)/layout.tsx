@@ -3,6 +3,7 @@ import { logoutAction } from '../../actions/auth'
 import { LayoutList, Settings } from 'lucide-react'
 import { ThemeToggle } from '../../components/theme-toggle'
 import { Button } from '@heroui/react'
+import { getTrpcClient } from '../../lib/trpc'
 
 function GitHubIcon({ size = 14 }: { size?: number }) {
   return (
@@ -12,10 +13,15 @@ function GitHubIcon({ size = 14 }: { size?: number }) {
   )
 }
 
-function Footer() {
+function Footer({ serverTz, configuredTz }: { serverTz: string; configuredTz: string }) {
   const currentYear = new Date().getFullYear()
   const startYear = 2026
   const yearDisplay = currentYear > startYear ? `${startYear}–${currentYear}` : `${startYear}`
+
+  const now = new Date()
+  const fmt = (tz: string) => now.toLocaleTimeString('en-US', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false })
+  const serverTimeStr = fmt(serverTz)
+  const showCronTime = configuredTz && configuredTz !== serverTz
 
   return (
     <footer className="flex-none h-10 border-t border-border flex items-center justify-between px-4 sm:px-6 text-xs text-muted-foreground shrink-0 bg-footer">
@@ -27,6 +33,10 @@ function Footer() {
       >
         © {yearDisplay} Reaching Random LLC
       </a>
+      <span className="opacity-50 tabular-nums" suppressHydrationWarning>
+        {serverTimeStr} · {serverTz} (Server Time)
+        {showCronTime && ` · ${fmt(configuredTz)} · ${configuredTz} (Cron Time)`}
+      </span>
       <a
         href="https://github.com/melnicorn/cronulent"
         target="_blank"
@@ -40,7 +50,19 @@ function Footer() {
   )
 }
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  let timezoneUnset = false
+  let configuredTz = ''
+  const serverTz = Intl.DateTimeFormat().resolvedOptions().timeZone
+  try {
+    const client = await getTrpcClient()
+    const settings = await client.system.getSettings.query()
+    configuredTz = settings.timezone
+    timezoneUnset = !configuredTz
+  } catch {
+    // don't break layout if settings fetch fails
+  }
+
   return (
     <div className="h-screen flex flex-col bg-background">
       <header className="flex-none h-14 border-b border-border flex items-center justify-between px-4 sm:px-6 shrink-0 bg-header">
@@ -72,8 +94,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </form>
         </div>
       </header>
+      {timezoneUnset && (
+        <div className="flex-none border-b border-amber-500/20 bg-amber-500/10 px-4 py-2 text-xs text-amber-700 dark:text-amber-400 flex items-center gap-2">
+          <span>No timezone configured — cron schedules are running in the server&apos;s default timezone: {serverTz}.</span>
+          <Link href="/settings" className="underline hover:no-underline whitespace-nowrap">Configure in Settings →</Link>
+        </div>
+      )}
       <main className="flex-1 overflow-auto overscroll-contain p-4 sm:p-6">{children}</main>
-      <Footer />
+      <Footer serverTz={serverTz} configuredTz={configuredTz} />
     </div>
   )
 }

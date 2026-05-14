@@ -1,11 +1,26 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useState, useEffect } from 'react'
 import { initializeAction } from '../actions/system'
-import { TextField, Label, Input, Button } from '@heroui/react'
+import { Autocomplete, EmptyState, Label, ListBox, SearchField, TextField, Input, Button, useFilter } from '@heroui/react'
+import type { Key } from '@heroui/react'
 
-export function SetupForm() {
+const allTimezones: string[] = (() => {
+  try {
+    return Intl.supportedValuesOf('timeZone')
+  } catch {
+    return []
+  }
+})()
+
+export function SetupForm({ serverTimezone }: { serverTimezone: string }) {
   const [error, action, isPending] = useActionState(initializeAction, null)
+  const [timezone, setTimezone] = useState('')
+  const { contains } = useFilter({ sensitivity: 'base' })
+
+  useEffect(() => {
+    setTimezone(serverTimezone)
+  }, [])
 
   return (
     <form action={action} className="space-y-4">
@@ -32,6 +47,43 @@ export function SetupForm() {
           placeholder="Repeat password"
         />
       </TextField>
+      <div className="space-y-1.5">
+        <Autocomplete
+          className="w-full"
+          value={timezone || null}
+          onChange={(key: Key | Key[] | null) => {
+            const val = Array.isArray(key) ? key[0] : key
+            if (typeof val === 'string') setTimezone(val)
+          }}
+        >
+          <Label className="block text-sm text-muted-foreground">Timezone</Label>
+          <Autocomplete.Trigger>
+            <Autocomplete.Value />
+            <Autocomplete.Indicator />
+          </Autocomplete.Trigger>
+          <Autocomplete.Popover>
+            <Autocomplete.Filter filter={contains}>
+              <SearchField name="search" variant="secondary" aria-label="Search timezones">
+                <SearchField.Group>
+                  <SearchField.SearchIcon />
+                  <SearchField.Input placeholder="Search timezones…" />
+                  <SearchField.ClearButton />
+                </SearchField.Group>
+              </SearchField>
+              <ListBox renderEmptyState={() => <EmptyState>No results found</EmptyState>}>
+                {allTimezones.map(tz => (
+                  <ListBox.Item key={tz} id={tz} textValue={tz}>
+                    {tz}
+                    <ListBox.ItemIndicator />
+                  </ListBox.Item>
+                ))}
+              </ListBox>
+            </Autocomplete.Filter>
+          </Autocomplete.Popover>
+        </Autocomplete>
+        <p className="text-xs text-muted-foreground">Detected from server — change if incorrect</p>
+      </div>
+      <input type="hidden" name="timezone" value={timezone} />
       <Button type="submit" isDisabled={isPending} isPending={isPending} fullWidth>
         {isPending ? 'Setting up...' : 'Set password'}
       </Button>
