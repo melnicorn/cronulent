@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Play, Pause, CirclePlay, Trash2, Loader2 } from 'lucide-react'
 import type { Task } from '@repo/common'
 import { triggerTaskAction, pauseTaskAction, resumeTaskAction, deleteTaskAction, getExecutionStatusAction } from '../actions/tasks'
+import { Button } from '@heroui/react'
 
 interface Props {
   task: Task
@@ -35,46 +36,46 @@ export function TaskActions({ task }: Props) {
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
-      <button
-        disabled={busy}
-        onClick={handleRun}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border border-border text-foreground hover:bg-accent transition-colors disabled:opacity-50"
-      >
+      <Button variant="outline" size="sm" isDisabled={busy} onPress={handleRun}>
         {isPolling ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
         {isPolling ? 'Running…' : 'Run now'}
-      </button>
+      </Button>
 
       {task.enabled ? (
-        <button
-          disabled={busy}
-          onClick={() => startTransition(() => pauseTaskAction(task.id).then(() => router.refresh()))}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border border-border text-foreground hover:bg-accent transition-colors disabled:opacity-50"
+        <Button
+          variant="outline"
+          size="sm"
+          isDisabled={busy}
+          onPress={() => startTransition(() => pauseTaskAction(task.id).then(() => router.refresh()))}
         >
           <Pause size={14} />
           Pause
-        </button>
+        </Button>
       ) : (
-        <button
-          disabled={busy}
-          onClick={() => startTransition(() => resumeTaskAction(task.id).then(() => router.refresh()))}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border border-border text-foreground hover:bg-accent transition-colors disabled:opacity-50"
+        <Button
+          variant="outline"
+          size="sm"
+          isDisabled={busy}
+          onPress={() => startTransition(() => resumeTaskAction(task.id).then(() => router.refresh()))}
         >
           <CirclePlay size={14} />
           Resume
-        </button>
+        </Button>
       )}
 
-      <button
-        disabled={busy}
-        onClick={() => {
+      <Button
+        variant="danger"
+        size="sm"
+        isDisabled={busy}
+        className="ml-auto"
+        onPress={() => {
           if (!confirm(`Delete "${task.name}"? This cannot be undone.`)) return
           startTransition(() => deleteTaskAction(task.id))
         }}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border border-destructive text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50 ml-auto"
       >
         <Trash2 size={14} />
         Delete
-      </button>
+      </Button>
     </div>
   )
 }

@@ -1,8 +1,8 @@
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getTrpcClient } from '../../lib/trpc'
 import { Plus } from 'lucide-react'
 import { TaskRow } from '../../components/task-row'
+import { LinkButton } from '../../components/link-button'
 
 export default async function DashboardPage() {
   const client = await getTrpcClient()
@@ -19,13 +19,10 @@ export default async function DashboardPage() {
     <div className="max-w-5xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-foreground">Tasks</h1>
-        <Link
-          href="/tasks/new"
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
-        >
+        <LinkButton href="/tasks/new" size="sm">
           <Plus size={16} />
           New task
-        </Link>
+        </LinkButton>
       </div>
 
       {tasks.length === 0 ? (

@@ -10,6 +10,7 @@ interface Config {
   passwordHash: string
   passwordSalt: string
   jwtSecret: string
+  timezone?: string
 }
 
 export class ConfigManager {
@@ -42,6 +43,18 @@ export class ConfigManager {
   get(): Config {
     if (!this.config) throw new Error('System not initialized')
     return this.config
+  }
+
+  getTimezone(): string {
+    return this.config?.timezone ?? ''
+  }
+
+  async updateSettings(settings: { timezone: string }): Promise<void> {
+    const current = this.get()
+    const updated: Config = { ...current, ...settings }
+    await fs.writeFile(this.filePath, JSON5.stringify(updated, null, 2))
+    this.config = updated
+    console.log('[config] settings updated')
   }
 
   async initialize(password: string): Promise<void> {

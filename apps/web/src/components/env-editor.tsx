@@ -1,16 +1,24 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Trash2 } from 'lucide-react'
+import { Check, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { Button, Input, Label } from '@heroui/react'
 
 interface Props {
   value: Record<string, string>
   onChange: (value: Record<string, string>) => void
 }
 
+interface EditState {
+  originalKey: string
+  key: string
+  val: string
+}
+
 export function EnvEditor({ value, onChange }: Props) {
   const [newKey, setNewKey] = useState('')
   const [newVal, setNewVal] = useState('')
+  const [editing, setEditing] = useState<EditState | null>(null)
 
   const entries = Object.entries(value)
 
@@ -28,54 +36,118 @@ export function EnvEditor({ value, onChange }: Props) {
     onChange(next)
   }
 
-  function updateValue(key: string, val: string) {
-    onChange({ ...value, [key]: val })
+  function startEdit(key: string) {
+    setEditing({ originalKey: key, key, val: value[key] ?? '' })
+  }
+
+  function saveEdit() {
+    if (!editing) return
+    const newKey = editing.key.trim()
+    if (!newKey) return
+    const next = { ...value }
+    if (editing.originalKey !== newKey) delete next[editing.originalKey]
+    next[newKey] = editing.val
+    onChange(next)
+    setEditing(null)
+  }
+
+  function cancelEdit() {
+    setEditing(null)
   }
 
   return (
     <div className="space-y-2">
-      <label className="text-sm font-medium text-foreground">Environment variables</label>
+      <Label>Environment variables</Label>
 
       {entries.length > 0 && (
         <div className="space-y-1.5">
-          {entries.map(([k, v]) => (
-            <div key={k} className="flex gap-2 items-center">
-              <span className="font-mono text-xs text-muted-foreground w-40 truncate shrink-0">{k}</span>
-              <input
-                value={v}
-                onChange={e => updateValue(k, e.target.value)}
-                className="flex-1 px-2 py-1 text-xs rounded border border-input bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-              />
-              <button type="button" onClick={() => removeEntry(k)} className="text-muted-foreground hover:text-destructive transition-colors">
-                <Trash2 size={14} />
-              </button>
-            </div>
-          ))}
+          {entries.map(([k, v]) => {
+            const isEditing = editing?.originalKey === k
+            return isEditing ? (
+              <div key={k} className="flex gap-2 items-center">
+                <Input
+                  value={editing.key}
+                  onChange={e => setEditing(s => s && ({ ...s, key: e.target.value }))}
+                  aria-label="Environment variable key"
+                  className="w-40 font-mono shrink-0"
+                  autoFocus
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') { e.preventDefault(); saveEdit() }
+                    if (e.key === 'Escape') { e.preventDefault(); cancelEdit() }
+                  }}
+                />
+                <Input
+                  value={editing.val}
+                  onChange={e => setEditing(s => s && ({ ...s, val: e.target.value }))}
+                  aria-label="Environment variable value"
+                  className="flex-1"
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') { e.preventDefault(); saveEdit() }
+                    if (e.key === 'Escape') { e.preventDefault(); cancelEdit() }
+                  }}
+                />
+                <Button type="button" isIconOnly variant="ghost" onPress={saveEdit} aria-label="Save changes">
+                  <Check size={14} />
+                </Button>
+                <Button type="button" isIconOnly variant="ghost" onPress={cancelEdit} aria-label="Cancel edit">
+                  <X size={14} />
+                </Button>
+              </div>
+            ) : (
+              <div key={k} className="flex gap-2 items-center">
+                <span className="font-mono text-xs text-muted-foreground w-40 truncate shrink-0">{k}</span>
+                <span className="flex-1 text-xs truncate text-foreground">{v}</span>
+                <Button
+                  type="button"
+                  isIconOnly
+                  variant="ghost"
+                  onPress={() => startEdit(k)}
+                  aria-label={`Edit ${k}`}
+                >
+                  <Pencil size={14} />
+                </Button>
+                <Button
+                  type="button"
+                  isIconOnly
+                  variant="ghost"
+                  onPress={() => removeEntry(k)}
+                  aria-label={`Remove ${k}`}
+                  className="text-muted-foreground hover:text-destructive"
+                >
+                  <Trash2 size={14} />
+                </Button>
+              </div>
+            )
+          })}
         </div>
       )}
 
       <div className="flex gap-2 items-center">
-        <input
+        <Input
           value={newKey}
           onChange={e => setNewKey(e.target.value)}
           placeholder="KEY"
-          className="w-40 px-2 py-1 text-xs font-mono rounded border border-input bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+          aria-label="New environment variable key"
+          className="w-40 font-mono"
           onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addEntry())}
         />
-        <input
+        <Input
           value={newVal}
           onChange={e => setNewVal(e.target.value)}
           placeholder="value"
-          className="flex-1 px-2 py-1 text-xs rounded border border-input bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+          aria-label="New environment variable value"
+          className="flex-1"
           onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addEntry())}
         />
-        <button
+        <Button
           type="button"
-          onClick={addEntry}
-          className="text-muted-foreground hover:text-foreground transition-colors"
+          isIconOnly
+          variant="ghost"
+          onPress={addEntry}
+          aria-label="Add environment variable"
         >
           <Plus size={14} />
-        </button>
+        </Button>
       </div>
     </div>
   )

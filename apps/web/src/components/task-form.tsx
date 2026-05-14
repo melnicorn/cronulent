@@ -9,6 +9,17 @@ import { createTaskAction, updateTaskAction } from '../actions/tasks'
 import { CronHelp } from './cron-help'
 import { EnvEditor } from './env-editor'
 import { ScriptEditor } from './script-editor'
+import {
+  Button,
+  Checkbox,
+  Description,
+  Input,
+  Label,
+  ListBox,
+  Select,
+  TextArea,
+  TextField,
+} from '@heroui/react'
 
 interface Props {
   task?: Task
@@ -75,61 +86,80 @@ export function TaskForm({ task }: Props) {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Field label="Name" required>
-          <input
+        <TextField isRequired fullWidth>
+          <Label>Name</Label>
+          <Input
             value={name}
             onChange={e => setName(e.target.value)}
-            required
-            className={inputCls}
             placeholder="My scheduled task"
           />
-        </Field>
+        </TextField>
 
-        <Field label="Command type" required>
-          <select value={commandType} onChange={e => setCommandType(e.target.value as CommandType)} className={inputCls}>
-            {COMMAND_TYPES.map(t => (
-              <option key={t.value} value={t.value}>{t.label}</option>
-            ))}
-          </select>
-        </Field>
+        <Select
+          fullWidth
+          value={commandType}
+          onChange={key => { if (typeof key === 'string') setCommandType(key as CommandType) }}
+        >
+          <Label>Command type</Label>
+          <Select.Trigger>
+            <Select.Value />
+            <Select.Indicator />
+          </Select.Trigger>
+          <Select.Popover>
+            <ListBox>
+              {COMMAND_TYPES.map(t => (
+                <ListBox.Item key={t.value} id={t.value} textValue={t.label}>
+                  {t.label}
+                  <ListBox.ItemIndicator />
+                </ListBox.Item>
+              ))}
+            </ListBox>
+          </Select.Popover>
+        </Select>
       </div>
 
-      <Field label="Description">
-        <input
+      <TextField fullWidth>
+        <Label>Description</Label>
+        <Input
           value={description}
           onChange={e => setDescription(e.target.value)}
-          className={inputCls}
           placeholder="Optional description"
         />
-      </Field>
+      </TextField>
 
-      <Field
-        label="Schedule (cron expression)"
-        required
-        action={
-          <button type="button" onClick={() => setShowCronHelp(v => !v)} className="text-muted-foreground hover:text-foreground">
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-1.5">
+          <span className="text-sm font-medium">Schedule (cron expression) <span className="text-destructive">*</span></span>
+          <Button
+            type="button"
+            isIconOnly
+            variant="ghost"
+            size="sm"
+            onPress={() => setShowCronHelp(v => !v)}
+            aria-label="Cron expression help"
+          >
             <Info size={14} />
-          </button>
-        }
-      >
-        <input
+          </Button>
+        </div>
+        <Input
           value={cronExpression}
           onChange={e => setCronExpression(e.target.value)}
           required
-          className={inputCls}
           placeholder="* * * * *"
+          fullWidth
         />
         <CronDescription expression={cronExpression} />
         {showCronHelp && <CronHelp expression={cronExpression} />}
-      </Field>
+      </div>
 
-      <Field label={commandType === 'executable' ? 'Command' : 'Script'}>
+      <div className="space-y-1.5">
+        <Label>{commandType === 'executable' ? 'Command' : 'Script'}</Label>
         {commandType === 'executable' ? (
-          <input
+          <Input
             value={command}
             onChange={e => setCommand(e.target.value)}
-            className={inputCls}
             placeholder="/usr/local/bin/my-tool"
+            fullWidth
           />
         ) : (
           <ScriptEditor
@@ -150,61 +180,51 @@ export function TaskForm({ task }: Props) {
             language={commandType === 'python-uv' ? 'python' : 'javascript'}
           />
         )}
-      </Field>
+      </div>
 
       {(commandType === 'python-uv' || commandType === 'node-volta') && (
-        <Field
-          label="Dependencies (one per line)"
-          hint={commandType === 'python-uv' ? 'e.g. requests, httpx>=0.27' : 'e.g. axios, zod@3'}
-        >
-          <textarea
+        <TextField fullWidth>
+          <Label>Dependencies (one per line)</Label>
+          <Description>{commandType === 'python-uv' ? 'e.g. requests, httpx>=0.27' : 'e.g. axios, zod@3'}</Description>
+          <TextArea
             value={dependencies}
             onChange={e => setDependencies(e.target.value)}
             rows={3}
-            className={`${inputCls} resize-none font-mono`}
+            className="resize-none font-mono"
             placeholder={commandType === 'python-uv' ? 'requests\nhttpx>=0.27' : 'axios\nzod@3'}
           />
-        </Field>
+        </TextField>
       )}
 
-      <Field label="Parameters (one per line)">
-        <textarea
+      <TextField fullWidth>
+        <Label>Parameters (one per line)</Label>
+        <TextArea
           value={parameters}
           onChange={e => setParameters(e.target.value)}
           rows={3}
-          className={`${inputCls} resize-none`}
-          placeholder="--verbose&#10;--output /tmp/result.txt"
+          className="resize-none"
+          placeholder={'--verbose\n--output /tmp/result.txt'}
         />
-      </Field>
+      </TextField>
 
       <EnvEditor value={env} onChange={setEnv} />
 
-      <div className="flex items-center gap-2">
-        <input
-          id="enabled"
-          type="checkbox"
-          checked={enabled}
-          onChange={e => setEnabled(e.target.checked)}
-          className="rounded border-input"
-        />
-        <label htmlFor="enabled" className="text-sm text-foreground">Enable task immediately</label>
-      </div>
+      <Checkbox isSelected={enabled} onChange={setEnabled}>
+        <Checkbox.Control>
+          <Checkbox.Indicator />
+        </Checkbox.Control>
+        <Checkbox.Content>
+          <Label>Enable task immediately</Label>
+        </Checkbox.Content>
+      </Checkbox>
 
       <div className="flex items-center gap-3 pt-2">
-        <button
-          type="submit"
-          disabled={isPending}
-          className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-        >
+        <Button type="submit" isDisabled={isPending} isPending={isPending}>
           {isPending ? 'Saving...' : task ? 'Save changes' : 'Create task'}
-        </button>
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="px-4 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
+        </Button>
+        <Button type="button" variant="ghost" onPress={() => router.back()}>
           Cancel
-        </button>
+        </Button>
       </div>
     </form>
   )
@@ -249,28 +269,4 @@ function detectEnvVars(code: string, commandType: CommandType): string[] {
   }
 
   return [...vars]
-}
-
-const inputCls = 'w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary'
-
-function Field({ label, required, hint, action, children }: {
-  label: string
-  required?: boolean
-  hint?: string
-  action?: React.ReactNode
-  children: React.ReactNode
-}) {
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-center gap-1.5">
-        <label className="text-sm font-medium text-foreground">
-          {label}
-          {required && <span className="text-destructive ml-0.5">*</span>}
-        </label>
-        {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
-        {action}
-      </div>
-      {children}
-    </div>
-  )
 }

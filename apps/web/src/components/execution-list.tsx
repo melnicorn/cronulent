@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronRight, CircleCheck, CircleX, Clock, SkipForward } from 'lucide-react'
 import type { Execution, ExecutionStatus } from '@repo/common'
+import { Button } from '@heroui/react'
 
 interface Props {
   executions: Execution[]
@@ -28,9 +29,13 @@ function ExecutionRow({ execution: e }: { execution: Execution }) {
 
   return (
     <div>
-      <button
-        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-accent/40 transition-colors text-left"
-        onClick={() => hasOutput && setExpanded(v => !v)}
+      <Button
+        variant="ghost"
+        fullWidth
+        isDisabled={!hasOutput}
+        aria-label={`Execution at ${e.startedAt}${hasOutput ? ', click to expand' : ''}`}
+        className="flex items-center gap-3 px-4 py-3 text-left justify-start rounded-none h-auto"
+        onPress={() => setExpanded(v => !v)}
       >
         <StatusIcon status={e.status} />
         <span className="text-sm text-foreground flex-1" suppressHydrationWarning>
@@ -44,7 +49,7 @@ function ExecutionRow({ execution: e }: { execution: Execution }) {
             {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           </span>
         )}
-      </button>
+      </Button>
       {expanded && hasOutput && (
         <div className="px-4 pb-3 space-y-2">
           {e.skipReason && (

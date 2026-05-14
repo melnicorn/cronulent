@@ -1,6 +1,8 @@
+import Link from 'next/link'
 import { logoutAction } from '../../actions/auth'
-import { LogOut } from 'lucide-react'
+import { LayoutList, Settings } from 'lucide-react'
 import { ThemeToggle } from '../../components/theme-toggle'
+import { Button } from '@heroui/react'
 
 function GitHubIcon({ size = 14 }: { size?: number }) {
   return (
@@ -46,20 +48,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <span className="text-xl font-light text-foreground tracking-wide">Cronulent</span>
           <span className="text-xs font-light text-muted-foreground tracking-wide">An acceptable and fine cron scheduler</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
+          <Link
+            href="/"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <LayoutList size={16} />
+            <span className="hidden sm:inline">Tasks</span>
+          </Link>
+          <Link
+            href="/settings"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Settings size={16} />
+            <span className="hidden sm:inline">Settings</span>
+          </Link>
           <ThemeToggle />
           <form action={logoutAction}>
-            <button
-              type="submit"
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <LogOut size={16} />
+            <Button type="submit" variant="ghost" size="sm" aria-label="Sign out">
               <span className="hidden sm:inline">Sign out</span>
-            </button>
+              <span className="sm:hidden">Out</span>
+            </Button>
           </form>
         </div>
       </header>
-      <main className="flex-1 overflow-auto p-4 sm:p-6">{children}</main>
+      <main className="flex-1 overflow-auto overscroll-contain p-4 sm:p-6">{children}</main>
       <Footer />
     </div>
   )

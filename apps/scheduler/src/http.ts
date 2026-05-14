@@ -4,6 +4,7 @@ import type { AppContext } from '@repo/common'
 import type { AuthService } from './auth'
 import type { ITaskRepository, IExecutionRepository } from '@repo/common'
 import type { ISchedulerService } from '@repo/common'
+import type { ConfigManager } from './config'
 
 export function startHttpServer(opts: {
   port: number
@@ -11,6 +12,7 @@ export function startHttpServer(opts: {
   executionRepo: IExecutionRepository
   schedulerService: ISchedulerService
   auth: AuthService
+  configManager: ConfigManager
 }): void {
   const server = createHTTPServer({
     router: appRouter,
@@ -30,6 +32,10 @@ export function startHttpServer(opts: {
           verifyPassword: (pw) => opts.auth.verifyPassword(pw),
           signToken: (sub) => opts.auth.signToken(sub),
           initialize: (password) => opts.auth.initialize(password),
+        },
+        settings: {
+          getTimezone: () => opts.configManager.getTimezone(),
+          updateSettings: (s) => opts.configManager.updateSettings(s),
         },
       }
     },

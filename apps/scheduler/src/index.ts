@@ -22,11 +22,11 @@ if (!auth.isInitialized()) {
 
 const envManager = new EnvironmentManager(DATA_DIR)
 const executor = new TaskExecutor(taskRepo, executionRepo, envManager)
-const schedulerService = new NodeCronSchedulerService(taskRepo, executor, envManager)
+const schedulerService = new NodeCronSchedulerService(taskRepo, executor, envManager, () => configManager.getTimezone())
 
 await schedulerService.start()
 
-startHttpServer({ port: PORT, taskRepo, executionRepo, schedulerService, auth })
+startHttpServer({ port: PORT, taskRepo, executionRepo, schedulerService, auth, configManager })
 
 process.on('SIGTERM', async () => {
   await schedulerService.stop()
