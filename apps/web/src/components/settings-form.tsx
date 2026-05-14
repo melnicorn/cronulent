@@ -2,7 +2,7 @@
 
 import type { Key } from '@heroui/react'
 import { Autocomplete, EmptyState, Label, ListBox, SearchField, useFilter } from '@heroui/react'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { updateSettingsAction } from '../actions/system'
 import { Button } from '@heroui/react'
 
@@ -19,12 +19,6 @@ export function SettingsForm({ currentTimezone }: { currentTimezone: string }) {
   const [timezone, setTimezone] = useState<string>(currentTimezone)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!currentTimezone) {
-      setTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone)
-    }
-  }, [currentTimezone])
 
   async function handleSave() {
     setSaving(true)
@@ -62,7 +56,7 @@ export function SettingsForm({ currentTimezone }: { currentTimezone: string }) {
             </Autocomplete.Trigger>
             <Autocomplete.Popover>
               <Autocomplete.Filter filter={contains}>
-                <SearchField autoFocus name="search" variant="secondary">
+                <SearchField autoFocus name="search" variant="secondary" aria-label="Search timezones">
                   <SearchField.Group>
                     <SearchField.SearchIcon />
                     <SearchField.Input placeholder="Search timezones…" />
