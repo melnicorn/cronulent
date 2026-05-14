@@ -1,15 +1,19 @@
 <!--
 ## Sync Impact Report
 
-**Version Change**: 1.1.0 → 1.2.0 (MINOR — new principle added)
+**Version Change**: 1.2.0 → 1.3.0 (MINOR — new Technology Standards subsection added)
 
 **Added Sections**:
-- VI. User-Facing Documentation: establishes that README and all user-facing docs MUST be
-  written for first-time readers with no knowledge of project history.
+- Technology Standards › UI Components (web): establishes HeroUI v3 as the canonical
+  UI component library; prohibits native HTML interactive elements where HeroUI
+  equivalents exist.
 
 **Modified Sections**: none
 
-**Templates**: no changes required (existing templates are unaffected)
+**Templates**:
+- plan-template.md ✅ no changes required (generic enough)
+- spec-template.md ✅ no changes required
+- tasks-template.md ✅ no changes required
 
 **Deferred TODOs**: none
 -->
@@ -125,6 +129,29 @@ rather than a separate transpile/build step:
 - TypeScript config: extend `@repo/typescript-config/react-library.json` (UI) or
   `@repo/typescript-config/node.json` (non-UI)
 
+### UI Components (web apps)
+
+- **Component library**: `@heroui/react` v3 — the canonical UI component library for
+  all Next.js web apps in this monorepo.
+- **Styles package**: `@heroui/styles` — MUST be imported in `globals.css` immediately
+  after `@import "tailwindcss"`. Import order is load-bearing.
+- **Dark mode variant**: `@custom-variant dark (&:is(.dark *))` MUST be declared in
+  `globals.css` to align HeroUI's `.dark` selectors with `next-themes`.
+- **No provider required**: HeroUI v3 does not require a wrapping provider component.
+- **Component usage**: All interactive UI elements — buttons, inputs, selects, textareas,
+  checkboxes, and form-level controls — MUST use HeroUI equivalents (`Button`, `Input`,
+  `TextField`, `Select`, `TextArea`, `Checkbox`, etc.) rather than native HTML elements.
+  Native HTML elements are only permitted where no HeroUI equivalent exists.
+- **Compound pattern**: HeroUI components MUST be used with their documented compound
+  (dot-notation) subcomponents (e.g., `Select.Trigger`, `Checkbox.Control`) rather than
+  constructing custom wrappers around native elements.
+- **Navigation buttons**: HeroUI `Button` does not accept an `href` prop. For buttons
+  that navigate, use a shared `LinkButton` client component that wraps `Button` and
+  calls `router.push()` — do not embed `<a>` inside `<button>` or vice versa.
+- **Accessibility**: Every icon-only button MUST include an `aria-label`. Every form
+  input MUST have an associated label, either via `TextField > Label` or an explicit
+  `aria-label` attribute.
+
 New runtime dependencies MUST be evaluated for bundle-size impact before adoption.
 Dev-only tooling MUST be placed in `devDependencies` and shared via workspace packages
 where possible to avoid duplication across `packages/` and `apps/`.
@@ -161,4 +188,4 @@ All feature `plan.md` files MUST include a Constitution Check gate (verified bef
 Phase 0 and re-checked after Phase 1). Complexity that appears to violate a principle
 MUST be justified in the Complexity Tracking table in `plan.md` — not silently accepted.
 
-**Version**: 1.2.0 | **Ratified**: 2026-05-12 | **Last Amended**: 2026-05-13
+**Version**: 1.3.0 | **Ratified**: 2026-05-12 | **Last Amended**: 2026-05-14
