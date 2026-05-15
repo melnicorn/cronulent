@@ -1,6 +1,51 @@
-export type CommandType = 'shell' | 'python-uv' | 'node-volta' | 'executable'
+export type CommandType = 'shell' | 'python-uv' | 'node-volta'
 
 export type ExecutionStatus = 'running' | 'success' | 'failed' | 'interrupted' | 'skipped'
+
+export interface PluginAdminConfigField {
+  key: string
+  label: string
+  type: 'string' | 'secret'
+  required: boolean
+}
+
+export interface PluginFunctionParam {
+  name: string
+  type: string
+  description: string
+  optional: boolean
+  defaultValue?: string
+}
+
+export interface PluginFunction {
+  name: string
+  description: string
+  params: PluginFunctionParam[]
+}
+
+export interface PluginManifest {
+  id: string
+  name: string
+  description: string
+  adminConfigSchema: PluginAdminConfigField[]
+  pythonFunctionSchema: PluginFunction[]
+  nodeFunctionSchema: PluginFunction[]
+}
+
+export interface PluginState {
+  id: string
+  enabled: boolean
+  config: Record<string, string>
+}
+
+export interface LifecycleNotificationConfig {
+  pluginId: string
+}
+
+export interface LifecycleNotifications {
+  onSuccess?: LifecycleNotificationConfig
+  onFailure?: LifecycleNotificationConfig
+}
 
 export interface Task {
   id: string
@@ -13,6 +58,7 @@ export interface Task {
   dependencies: string[]
   env: Record<string, string>
   enabled: boolean
+  lifecycleNotifications?: LifecycleNotifications
   createdAt: string
   updatedAt: string
 }

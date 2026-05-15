@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { logoutAction } from '../../actions/auth'
-import { LayoutList, Settings } from 'lucide-react'
+import { LayoutList, Puzzle, Settings } from 'lucide-react'
 import { ThemeToggle } from '../../components/theme-toggle'
 import { Button } from '@heroui/react'
 import { getTrpcClient } from '../../lib/trpc'
@@ -77,6 +77,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
           >
             <LayoutList size={16} />
             <span className="hidden sm:inline">Tasks</span>
+          </Link>
+          <Link
+            href="/plugins"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Puzzle size={16} />
+            <span className="hidden sm:inline">Plugins</span>
           </Link>
           <Link
             href="/settings"

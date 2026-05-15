@@ -3,11 +3,20 @@ import path from 'node:path'
 import { spawn } from 'node:child_process'
 import type { Task } from '@repo/common'
 
+interface PluginWithHelper {
+  id: string
+  generatePythonHelper: () => string
+  generateNodeHelper: () => string
+  generateShellHelper: () => string
+}
+
 export class EnvironmentManager {
   private scriptsDir: string
+  readonly sharedDir: string
 
   constructor(dataDir: string) {
     this.scriptsDir = path.join(dataDir, 'scripts')
+    this.sharedDir = path.join(this.scriptsDir, 'shared')
   }
 
   taskDir(taskId: string): string {
@@ -53,8 +62,6 @@ export class EnvironmentManager {
         break
       }
 
-      case 'executable':
-        break
     }
 
     console.log(`[env] prepared ${task.commandType} environment for task ${task.id}`)
@@ -64,6 +71,112 @@ export class EnvironmentManager {
     const dir = this.taskDir(taskId)
     await fs.rm(dir, { recursive: true, force: true })
     console.log(`[env] cleaned up environment for task ${taskId}`)
+  }
+
+  async writeSharedHelpers(plugins: PluginWithHelper[]): Promise<void> {
+    await fs.mkdir(this.sharedDir, { recursive: true })
+
+    const pythonPreamble = `\
+import os as _os
+import json as _json
+import urllib.request as _urllib_request
+
+_CRONULENT_API_URL = _os.environ.get('CRONULENT_API_URL', 'http://localhost:3001')
+_CRONULENT_TOKEN = _os.environ.get('CRONULENT_INTERNAL_TOKEN', '')
+
+def _cronulent_dispatch(plugin_id, func, params, strict=False):
+    body = _json.dumps({'pluginId': plugin_id, 'func': func, 'params': params, 'strict': strict}).encode()
+    req = _urllib_request.Request(
+        f'{_CRONULENT_API_URL}/plugins.dispatch',
+        data=body,
+        headers={'Content-Type': 'application/json', 'Authorization': f'Bearer {_CRONULENT_TOKEN}'},
+    )
+    try:
+        with _urllib_request.urlopen(req, timeout=10) as r:
+            r.read()
+    except Exception as e:
+        if strict:
+            raise RuntimeError(f'[cronulent] dispatch failed: {e}') from e
+        print(f'[cronulent] warning: dispatch failed: {e}', flush=True)
+
+`
+
+    const nodePreamble = `\
+import http from 'node:http'
+import https from 'node:https'
+
+const _cronulentApiUrl = process.env.CRONULENT_API_URL ?? 'http://localhost:3001'
+const _cronulentToken = process.env.CRONULENT_INTERNAL_TOKEN ?? ''
+
+function _cronulentDispatch(pluginId, func, params, strict = false) {
+  const body = JSON.stringify({ pluginId, func, params, strict })
+  const url = new URL(\`\${_cronulentApiUrl}/plugins.dispatch\`)
+  const lib = url.protocol === 'https:' ? https : http
+  return new Promise((resolve, reject) => {
+    const req = lib.request(
+      url,
+      { method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body), 'Authorization': \`Bearer \${_cronulentToken}\` } },
+      (res) => {
+        res.resume()
+        res.on('end', () => {
+          if (res.statusCode && res.statusCode >= 400) {
+            const err = new Error(\`[cronulent] dispatch failed: HTTP \${res.statusCode}\`)
+            if (strict) reject(err)
+            else { console.warn(err.message); resolve(undefined) }
+          } else {
+            resolve(undefined)
+          }
+        })
+      }
+    )
+    req.on('error', (err) => {
+      if (strict) reject(new Error(\`[cronulent] dispatch failed: \${err.message}\`))
+      else { console.warn(\`[cronulent] warning: dispatch failed: \${err.message}\`); resolve(undefined) }
+    })
+    req.write(body)
+    req.end()
+  })
+}
+
+`
+
+    const shellPreamble = `\
+#!/usr/bin/env bash
+_CRONULENT_API_URL="\${CRONULENT_API_URL:-http://localhost:3001}"
+_CRONULENT_TOKEN="\${CRONULENT_INTERNAL_TOKEN:-}"
+
+_cronulent_dispatch() {
+  local plugin_id="$1" func="$2" params="$3" strict="\${4:-false}"
+  local _body="{\\"pluginId\\":\\"\${plugin_id}\\",\\"func\\":\\"\${func}\\",\\"params\\":\${params},\\"strict\\":\${strict}}"
+  local _http_code _curl_exit
+  _http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \\
+       "\${_CRONULENT_API_URL}/plugins.dispatch" \\
+       -H "Content-Type: application/json" \\
+       -H "Authorization: Bearer \${_CRONULENT_TOKEN}" \\
+       -d "\${_body}")
+  _curl_exit=$?
+  if [ "\${_curl_exit}" -ne 0 ] || [ "\${_http_code:-0}" -ge 400 ]; then
+    if [ "\${strict}" = "true" ]; then
+      echo "[cronulent] dispatch failed: \${plugin_id}.\${func}" >&2
+      return 1
+    else
+      echo "[cronulent] warning: dispatch failed: \${plugin_id}.\${func}" >&2
+    fi
+  fi
+}
+
+`
+
+    const ids = plugins.map(p => p.id)
+    const pythonPostamble = `\nclass _CronHooks:\n${ids.map(id => `    ${id} = ${id}`).join('\n')}\n\ncronhooks = _CronHooks()\n`
+    const nodePostamble = `\nconst cronhooks = { ${ids.join(', ')} }\nexport default cronhooks\n`
+
+    const pythonParts = plugins.map(p => p.generatePythonHelper())
+    const nodeParts = plugins.map(p => p.generateNodeHelper())
+    const shellParts = plugins.map(p => p.generateShellHelper())
+    await fs.writeFile(path.join(this.sharedDir, 'cronulent_hooks.py'), pythonPreamble + pythonParts.join('\n') + pythonPostamble)
+    await fs.writeFile(path.join(this.sharedDir, 'cronulent_hooks.mjs'), nodePreamble + nodeParts.join('\n') + nodePostamble)
+    await fs.writeFile(path.join(this.sharedDir, 'cronulent_hooks.sh'), shellPreamble + shellParts.join('\n'))
   }
 
   getRunCommand(task: Task): { cmd: string; args: string[]; cwd: string } {
@@ -78,8 +191,6 @@ export class EnvironmentManager {
         return { cmd: 'uv', args: ['run', '--no-sync', 'script.py', ...params], cwd: dir }
       case 'node-volta':
         return { cmd: 'volta', args: ['run', 'node', 'script.mjs', ...params], cwd: dir }
-      case 'executable':
-        return { cmd: task.command, args: params, cwd: process.cwd() }
     }
   }
 }

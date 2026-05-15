@@ -1,7 +1,7 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
   "ui": "tui",
-  "globalEnv": ["PORT", "DATA_DIR", "SCHEDULER_URL", "SECURE_COOKIE"],
+  "globalEnv": ["PORT", "DATA_DIR", "SCHEDULER_URL", "SECURE_COOKIE", "CRONULENT_API_URL", "CRONULENT_INTERNAL_TOKEN", "PYTHONPATH"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
