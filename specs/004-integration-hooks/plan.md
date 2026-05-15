@@ -85,9 +85,9 @@ apps/scheduler/src/
 ├── http.ts              # + pass pluginRegistry to tRPC context
 ├── index.ts             # + instantiate PluginRegistry; pass to http context
 └── plugins/
-    ├── index.ts         # NEW — PluginRegistry class; exports registry singleton
-    └── telegram.ts      # NEW — Telegram plugin: manifest + Python/Node helper
-                         #   generators
+    ├── index.ts         # NEW — PluginRegistry class; plugin array registry
+    └── telegram.ts      # NEW — Telegram plugin: manifest + Python/Node/shell
+                         #   helper generators + dispatch
 
 apps/web/src/
 ├── app/(dashboard)/
@@ -109,13 +109,13 @@ apps/web/src/
 
 `PluginManifest` and related types live in `packages/common` so both the scheduler (for helper generation) and the web app (received via tRPC) can use them. The actual `PluginManifest` instances (with their helper generator functions) live only in `apps/scheduler/src/plugins/` since the web never runs the generator code — it only receives the manifest data over tRPC.
 
-### 2. Helper injection at execution time
+### 2. Shared helper directory, regenerated on state change
 
-Plugin helpers are written to the task directory immediately before the process is spawned (in `executor.ts`), not during `EnvironmentManager.setup()`. This ensures helpers always reflect the current plugin state — if an admin enables or reconfigures a plugin, the next execution picks it up automatically.
+Plugin helpers are written once to `data/scripts/shared/` (on scheduler startup and whenever a plugin is enabled or its config is saved), not per-task. Task scripts reference `../shared/cronulent_hooks.py`, `../shared/cronulent_hooks.mjs`, or `../shared/cronulent_hooks.sh` via relative path. `PYTHONPATH` is set to the shared dir for Python tasks. This ensures helpers always reflect the current plugin state without per-execution file writes.
 
-### 3. Plugin config transport via environment variables
+### 3. Scheduler-as-proxy dispatch
 
-The executor sets `CRONULENT_PLUGIN_{PLUGIN_ID}_{FIELD_KEY}=value` in the child process environment. The injected helper files read these vars internally. The task script author only calls user-facing functions (e.g., `telegram.sendMessage(title, text)`) — they never handle tokens or IDs.
+Rather than injecting credentials into the child process environment, helper files make HTTP calls back to the scheduler (`CRONULENT_API_URL/plugins.dispatch`) authenticated with a short-lived internal token (`CRONULENT_INTERNAL_TOKEN`). The scheduler validates the token and performs the actual API call server-side. Credentials never leave the server process. An `internalProcedure` middleware in the tRPC router enforces that only callers with the correct token can invoke dispatch.
 
 ### 4. Plugin registry as a static index
 

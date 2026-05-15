@@ -6,11 +6,17 @@ import JSON5 from 'json5'
 
 const scrypt = promisify(crypto.scrypt)
 
+interface PluginConfigEntry {
+  enabled: boolean
+  config: Record<string, string>
+}
+
 interface Config {
   passwordHash: string
   passwordSalt: string
   jwtSecret: string
   timezone?: string
+  plugins?: Record<string, PluginConfigEntry>
 }
 
 export class ConfigManager {
@@ -66,5 +72,30 @@ export class ConfigManager {
     await fs.writeFile(this.filePath, JSON5.stringify(config, null, 2))
     this.config = config
     console.log('[config] initialized and saved to', this.filePath)
+  }
+
+  getPluginState(pluginId: string): PluginConfigEntry {
+    return this.config?.plugins?.[pluginId] ?? { enabled: false, config: {} }
+  }
+
+  async setPluginEnabled(pluginId: string, enabled: boolean): Promise<void> {
+    const current = this.get()
+    const plugins = { ...current.plugins }
+    plugins[pluginId] = { ...this.getPluginState(pluginId), enabled }
+    const updated: Config = { ...current, plugins }
+    await fs.writeFile(this.filePath, JSON5.stringify(updated, null, 2))
+    this.config = updated
+    console.log(`[config] plugin ${pluginId} ${enabled ? 'enabled' : 'disabled'}`)
+  }
+
+  async updatePluginConfig(pluginId: string, config: Record<string, string>): Promise<void> {
+    const current = this.get()
+    const plugins = { ...current.plugins }
+    const existing = this.getPluginState(pluginId)
+    plugins[pluginId] = { ...existing, config: { ...existing.config, ...config } }
+    const updated: Config = { ...current, plugins }
+    await fs.writeFile(this.filePath, JSON5.stringify(updated, null, 2))
+    this.config = updated
+    console.log(`[config] plugin ${pluginId} config updated`)
   }
 }

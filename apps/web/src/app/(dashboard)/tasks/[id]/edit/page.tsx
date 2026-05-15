@@ -9,13 +9,17 @@ interface Props {
 export default async function EditTaskPage({ params }: Props) {
   const { id } = await params
   const client = await getTrpcClient()
-  const task = await client.tasks.get.query({ id }).catch(() => null)
+  const [task, pluginsResult] = await Promise.all([
+    client.tasks.get.query({ id }).catch(() => null),
+    client.plugins.list.query().catch(() => ({ plugins: [] })),
+  ])
   if (!task) notFound()
+  const enabledPlugins = pluginsResult.plugins.filter(p => p.enabled)
 
   return (
     <div className="max-w-2xl mx-auto">
       <h1 className="text-xl font-semibold text-foreground mb-6">Edit task</h1>
-      <TaskForm task={task} />
+      <TaskForm task={task} enabledPlugins={enabledPlugins} />
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import path from 'node:path'
+import { randomUUID } from 'node:crypto'
 import { createRepositories } from './repositories/index'
 import { ConfigManager } from './config'
 import { AuthService } from './auth'
@@ -6,6 +7,7 @@ import { EnvironmentManager } from './environment-manager'
 import { TaskExecutor } from './executor'
 import { NodeCronSchedulerService } from './scheduler'
 import { startHttpServer } from './http'
+import { PluginRegistry } from './plugins/index'
 
 const PORT = parseInt(process.env.PORT ?? '3001', 10)
 const DATA_DIR = process.env.DATA_DIR ?? path.join(process.cwd(), 'data')
@@ -20,13 +22,24 @@ if (!auth.isInitialized()) {
   console.log('[scheduler] Not initialized — complete setup via the web UI.')
 }
 
+const internalToken = randomUUID()
+const apiUrl = `http://localhost:${PORT}`
+
+const pluginRegistry = new PluginRegistry()
 const envManager = new EnvironmentManager(DATA_DIR)
-const executor = new TaskExecutor(taskRepo, executionRepo, envManager)
+
+const allPluginsWithHelpers = pluginRegistry.list().map(m => {
+  const p = pluginRegistry.get(m.id)!
+  return { id: m.id, generatePythonHelper: p.generatePythonHelper, generateNodeHelper: p.generateNodeHelper, generateShellHelper: p.generateShellHelper }
+})
+await envManager.writeSharedHelpers(allPluginsWithHelpers)
+
+const executor = new TaskExecutor(taskRepo, executionRepo, envManager, pluginRegistry, configManager, apiUrl, internalToken)
 const schedulerService = new NodeCronSchedulerService(taskRepo, executor, envManager, () => configManager.getTimezone())
 
 await schedulerService.start()
 
-startHttpServer({ port: PORT, taskRepo, executionRepo, schedulerService, auth, configManager })
+startHttpServer({ port: PORT, taskRepo, executionRepo, schedulerService, auth, configManager, pluginRegistry, envManager, internalToken })
 
 process.on('SIGTERM', async () => {
   await schedulerService.stop()

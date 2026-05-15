@@ -66,14 +66,10 @@ export default async function TaskDetailPage({ params }: Props) {
           <Row label="Next run" suppressHydrationWarning>{next}</Row>
         )}
         <Row label="Command type">{task.commandType}</Row>
-        {task.commandType === 'executable' ? (
-          <Row label="Command"><code className="text-xs font-mono break-all">{task.command}</code></Row>
-        ) : (
-          <div className="px-4 py-3 space-y-2">
-            <span className="text-sm text-muted-foreground">Script</span>
-            <ScriptViewer value={task.command} commandType={task.commandType} />
-          </div>
-        )}
+        <div className="px-4 py-3 space-y-2">
+          <span className="text-sm text-muted-foreground">Script</span>
+          <ScriptViewer value={task.command} commandType={task.commandType} />
+        </div>
         {task.parameters.length > 0 && (
           <Row label="Parameters">
             <div className="flex flex-wrap gap-1">
