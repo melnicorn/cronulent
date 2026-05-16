@@ -10,7 +10,6 @@ const LANGUAGE: Record<CommandType, string> = {
   'shell': 'shell',
   'python-uv': 'python',
   'node-volta': 'javascript',
-  'executable': 'plaintext',
 }
 
 interface Props {

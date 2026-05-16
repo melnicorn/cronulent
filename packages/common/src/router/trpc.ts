@@ -24,3 +24,12 @@ const isAuthed = t.middleware(({ ctx, next }) => {
 })
 
 export const protectedProcedure = t.procedure.use(logger).use(isAuthed)
+
+const isInternal = t.middleware(({ ctx, next }) => {
+  if (!ctx.isInternalCall) {
+    throw new TRPCError({ code: 'UNAUTHORIZED' })
+  }
+  return next()
+})
+
+export const internalProcedure = t.procedure.use(logger).use(isInternal)

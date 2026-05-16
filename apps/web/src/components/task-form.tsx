@@ -1,14 +1,14 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Info } from 'lucide-react'
 import cronstrue from 'cronstrue'
-import type { Task, CommandType } from '@repo/common'
+import type { Task, CommandType, PluginManifest } from '@repo/common'
 import { createTaskAction, updateTaskAction } from '../actions/tasks'
 import { CronHelp } from './cron-help'
 import { EnvEditor } from './env-editor'
-import { ScriptEditor } from './script-editor'
+import { ScriptEditor, type ScriptEditorHandle } from './script-editor'
 import {
   Button,
   Checkbox,
@@ -21,18 +21,44 @@ import {
   TextField,
 } from '@heroui/react'
 
+type EnabledPlugin = Pick<PluginManifest, 'id' | 'name' | 'pythonFunctionSchema' | 'nodeFunctionSchema'>
+type LifecycleTrigger = 'none' | 'onSuccess' | 'onFailure' | 'both'
+
+function importLineFor(commandType: CommandType): string {
+  if (commandType === 'python-uv') return 'from cronulent_hooks import cronhooks'
+  if (commandType === 'node-volta') return "import cronhooks from '../shared/cronulent_hooks.mjs'"
+  if (commandType === 'shell') return 'source "../shared/cronulent_hooks.sh"'
+  return ''
+}
+
 interface Props {
   task?: Task
+  enabledPlugins?: EnabledPlugin[]
 }
+
+const LIFECYCLE_TRIGGERS: { value: LifecycleTrigger; label: string }[] = [
+  { value: 'none', label: 'None' },
+  { value: 'onFailure', label: 'On failure' },
+  { value: 'onSuccess', label: 'On success' },
+  { value: 'both', label: 'On success and failure' },
+]
 
 const COMMAND_TYPES: { value: CommandType; label: string }[] = [
   { value: 'shell', label: 'Shell' },
   { value: 'python-uv', label: 'Python (uv)' },
   { value: 'node-volta', label: 'Node.js (Volta)' },
-  { value: 'executable', label: 'Executable' },
 ]
 
-export function TaskForm({ task }: Props) {
+function deriveLifecycleTrigger(task: Task | undefined): LifecycleTrigger {
+  const n = task?.lifecycleNotifications
+  if (!n) return 'none'
+  if (n.onSuccess && n.onFailure) return 'both'
+  if (n.onSuccess) return 'onSuccess'
+  if (n.onFailure) return 'onFailure'
+  return 'none'
+}
+
+export function TaskForm({ task, enabledPlugins = [] }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
@@ -47,6 +73,22 @@ export function TaskForm({ task }: Props) {
   const [dependencies, setDependencies] = useState(task?.dependencies.join('\n') ?? '')
   const [enabled, setEnabled] = useState(task?.enabled ?? true)
   const [showCronHelp, setShowCronHelp] = useState(false)
+  const editorRef = useRef<ScriptEditorHandle>(null)
+  const [lifecycleTrigger, setLifecycleTrigger] = useState<LifecycleTrigger>(deriveLifecycleTrigger(task))
+  const [lifecyclePluginId, setLifecyclePluginId] = useState<string>(
+    task?.lifecycleNotifications?.onSuccess?.pluginId ??
+    task?.lifecycleNotifications?.onFailure?.pluginId ??
+    enabledPlugins[0]?.id ?? ''
+  )
+
+  function buildLifecycleNotifications() {
+    if (lifecycleTrigger === 'none' || !lifecyclePluginId) return undefined
+    const cfg = { pluginId: lifecyclePluginId }
+    return {
+      onSuccess: lifecycleTrigger === 'onSuccess' || lifecycleTrigger === 'both' ? cfg : undefined,
+      onFailure: lifecycleTrigger === 'onFailure' || lifecycleTrigger === 'both' ? cfg : undefined,
+    }
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -62,6 +104,7 @@ export function TaskForm({ task }: Props) {
       cronExpression,
       env,
       enabled,
+      lifecycleNotifications: buildLifecycleNotifications(),
     }
 
     startTransition(async () => {
@@ -153,16 +196,19 @@ export function TaskForm({ task }: Props) {
       </div>
 
       <div className="space-y-1.5">
-        <Label>{commandType === 'executable' ? 'Command' : 'Script'}</Label>
-        {commandType === 'executable' ? (
-          <Input
-            value={command}
-            onChange={e => setCommand(e.target.value)}
-            placeholder="/usr/local/bin/my-tool"
-            fullWidth
+        <div className="flex items-center justify-between">
+          <Label>Script</Label>
+          <InsertDropdown
+            commandType={commandType}
+            enabledPlugins={enabledPlugins}
+            onInsert={text => editorRef.current?.insert(text)}
+            onInsertAtTop={text => editorRef.current?.insertAtTop(text)}
+            importLine={importLineFor(commandType)}
           />
-        ) : (
+        </div>
+        {(
           <ScriptEditor
+            ref={editorRef}
             value={command}
             onChange={setCommand}
             onBlur={v => {
@@ -177,7 +223,7 @@ export function TaskForm({ task }: Props) {
                 })
               }
             }}
-            language={commandType === 'python-uv' ? 'python' : 'javascript'}
+            language={commandType === 'python-uv' ? 'python' : commandType === 'shell' ? 'shell' : 'javascript'}
           />
         )}
       </div>
@@ -209,6 +255,59 @@ export function TaskForm({ task }: Props) {
 
       <EnvEditor value={env} onChange={setEnv} />
 
+      {enabledPlugins.length > 0 && (
+        <div className="space-y-3">
+          <span className="text-sm font-medium">Notifications</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Select
+              fullWidth
+              value={lifecycleTrigger}
+              onChange={key => { if (typeof key === 'string') setLifecycleTrigger(key as LifecycleTrigger) }}
+            >
+              <Label>Trigger</Label>
+              <Select.Trigger>
+                <Select.Value />
+                <Select.Indicator />
+              </Select.Trigger>
+              <Select.Popover>
+                <ListBox>
+                  {LIFECYCLE_TRIGGERS.map(t => (
+                    <ListBox.Item key={t.value} id={t.value} textValue={t.label}>
+                      {t.label}
+                      <ListBox.ItemIndicator />
+                    </ListBox.Item>
+                  ))}
+                </ListBox>
+              </Select.Popover>
+            </Select>
+
+            {lifecycleTrigger !== 'none' && (
+              <Select
+                fullWidth
+                value={lifecyclePluginId}
+                onChange={key => { if (typeof key === 'string') setLifecyclePluginId(key) }}
+              >
+                <Label>Plugin</Label>
+                <Select.Trigger>
+                  <Select.Value />
+                  <Select.Indicator />
+                </Select.Trigger>
+                <Select.Popover>
+                  <ListBox>
+                    {enabledPlugins.map(p => (
+                      <ListBox.Item key={p.id} id={p.id} textValue={p.name}>
+                        {p.name}
+                        <ListBox.ItemIndicator />
+                      </ListBox.Item>
+                    ))}
+                  </ListBox>
+                </Select.Popover>
+              </Select>
+            )}
+          </div>
+        </div>
+      )}
+
       <Checkbox isSelected={enabled} onChange={setEnabled}>
         <Checkbox.Control>
           <Checkbox.Indicator />
@@ -227,6 +326,88 @@ export function TaskForm({ task }: Props) {
         </Button>
       </div>
     </form>
+  )
+}
+
+interface InsertDropdownProps {
+  commandType: CommandType
+  enabledPlugins: EnabledPlugin[]
+  onInsert: (text: string) => void
+  onInsertAtTop: (text: string) => void
+  importLine: string
+}
+
+function buildSnippetMap(enabledPlugins: EnabledPlugin[], commandType: CommandType): Map<string, string> {
+  const map = new Map<string, string>()
+  for (const plugin of enabledPlugins) {
+    if (commandType === 'shell') {
+      for (const fn of plugin.pythonFunctionSchema) {
+        const args = fn.params.filter(p => !p.optional).map(p => `"<${p.name}>"`).join(' ')
+        map.set(`${plugin.id}.${fn.name}`, `cronhooks_${plugin.id}_${fn.name} ${args}`)
+      }
+    } else {
+      const fns = commandType === 'python-uv' ? plugin.pythonFunctionSchema : plugin.nodeFunctionSchema
+      for (const fn of fns) {
+        const args = fn.params.filter(p => !p.optional).map(p => `"${p.name}"`).join(', ')
+        const call = commandType === 'python-uv'
+          ? `cronhooks.${plugin.id}.${fn.name}(${args})`
+          : `await cronhooks.${plugin.id}.${fn.name}(${args})`
+        map.set(`${plugin.id}.${fn.name}`, call)
+      }
+    }
+  }
+  return map
+}
+
+function InsertDropdown({ commandType, enabledPlugins, onInsert, onInsertAtTop, importLine }: InsertDropdownProps) {
+  const snippetMap = buildSnippetMap(enabledPlugins, commandType)
+
+  function handleChange(key: string) {
+    if (!key) return
+    if (key === '__import__') {
+      onInsertAtTop(importLine)
+    } else {
+      const call = snippetMap.get(key)
+      if (call) onInsert(call)
+    }
+  }
+
+  return (
+    <Select
+      value=""
+      onChange={key => { if (typeof key === 'string') handleChange(key) }}
+    >
+      <Select.Trigger className="text-xs text-foreground h-7 min-w-[130px]">
+        <Select.Value>Insert…</Select.Value>
+        <Select.Indicator />
+      </Select.Trigger>
+      <Select.Popover>
+        <ListBox>
+          <ListBox.Section aria-label="Actions">
+            <ListBox.Item id="__import__" textValue="Add import">
+              Add import
+              <ListBox.ItemIndicator />
+            </ListBox.Item>
+          </ListBox.Section>
+          {enabledPlugins.map(plugin => {
+            const fns = plugin.pythonFunctionSchema
+            if (fns.length === 0) return null
+            return (
+              <ListBox.Section key={plugin.id} aria-label={plugin.name}>
+                {fns.map(fn => (
+                  <ListBox.Item key={`${plugin.id}.${fn.name}`} id={`${plugin.id}.${fn.name}`} textValue={`${plugin.name}: ${fn.name}`}>
+                    <span className="text-xs text-muted-foreground">{plugin.name}</span>
+                    <span className="mx-1 text-muted-foreground/50">›</span>
+                    <span>{fn.name}</span>
+                    <ListBox.ItemIndicator />
+                  </ListBox.Item>
+                ))}
+              </ListBox.Section>
+            )
+          })}
+        </ListBox>
+      </Select.Popover>
+    </Select>
   )
 }
 
