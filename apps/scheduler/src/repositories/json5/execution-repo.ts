@@ -63,4 +63,14 @@ export class Json5ExecutionRepository implements IExecutionRepository {
     const all = await this.read()
     return all.filter(e => e.status === 'running')
   }
+
+  async trimByTaskId(taskId: string, keepCount: number): Promise<void> {
+    const all = await this.read()
+    const others = all.filter(e => e.taskId !== taskId)
+    const forTask = all
+      .filter(e => e.taskId === taskId)
+      .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
+      .slice(0, keepCount)
+    await this.write([...others, ...forTask])
+  }
 }

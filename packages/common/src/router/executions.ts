@@ -18,4 +18,13 @@ export const executionsRouter = router({
       if (!execution) throw new TRPCError({ code: 'NOT_FOUND' })
       return execution
     }),
+
+  clearByTaskId: protectedProcedure
+    .input(z.object({ taskId: z.string().min(1) }))
+    .mutation(async ({ input, ctx }) => {
+      const task = await ctx.taskRepo.findById(input.taskId)
+      if (!task) throw new TRPCError({ code: 'NOT_FOUND' })
+      await ctx.executionRepo.trimByTaskId(input.taskId, 0)
+      return { ok: true as const }
+    }),
 })

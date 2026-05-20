@@ -43,6 +43,7 @@ export function startHttpServer(opts: {
         },
         settings: {
           getTimezone: () => opts.configManager.getTimezone(),
+          getMaxHistoryItems: () => opts.configManager.getMaxHistoryItems(),
           updateSettings: (s) => opts.configManager.updateSettings(s),
         },
         pluginRegistry: {

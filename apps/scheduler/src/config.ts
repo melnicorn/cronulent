@@ -16,6 +16,7 @@ interface Config {
   passwordSalt: string
   jwtSecret: string
   timezone?: string
+  maxHistoryItems?: number
   plugins?: Record<string, PluginConfigEntry>
 }
 
@@ -55,7 +56,11 @@ export class ConfigManager {
     return this.config?.timezone ?? ''
   }
 
-  async updateSettings(settings: { timezone: string }): Promise<void> {
+  getMaxHistoryItems(): number {
+    return this.config?.maxHistoryItems ?? 10
+  }
+
+  async updateSettings(settings: { timezone: string; maxHistoryItems?: number }): Promise<void> {
     const current = this.get()
     const updated: Config = { ...current, ...settings }
     await fs.writeFile(this.filePath, JSON5.stringify(updated, null, 2))

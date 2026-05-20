@@ -82,6 +82,7 @@ export type UpdateTaskInput = z.infer<typeof updateTaskInputSchema>
 
 export const updateSettingsInputSchema = z.object({
   timezone: z.string(),
+  maxHistoryItems: z.number().int().positive().default(10),
 })
 
 export type UpdateSettingsInput = z.infer<typeof updateSettingsInputSchema>

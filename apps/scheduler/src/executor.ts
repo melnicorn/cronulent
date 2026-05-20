@@ -33,6 +33,7 @@ export class TaskExecutor {
         stdout: '',
         stderr: '',
       })
+      await this.executionRepo.trimByTaskId(taskId, this.configManager.getMaxHistoryItems())
       return skipped.id
     }
 
@@ -89,6 +90,7 @@ export class TaskExecutor {
           stdout: chunks.stdout.join(''),
           stderr: chunks.stderr.join(''),
         })
+        await this.executionRepo.trimByTaskId(taskId, this.configManager.getMaxHistoryItems())
         resolve(finalCode)
       })
 

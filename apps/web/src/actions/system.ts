@@ -28,7 +28,7 @@ export async function initializeAction(_prev: string | null, formData: FormData)
   redirect('/')
 }
 
-export async function updateSettingsAction(input: { timezone: string }): Promise<void> {
+export async function updateSettingsAction(input: { timezone: string; maxHistoryItems: number }): Promise<void> {
   const client = await getTrpcClient()
   await client.system.updateSettings.mutate(input)
   revalidatePath('/settings')

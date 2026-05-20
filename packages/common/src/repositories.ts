@@ -15,4 +15,5 @@ export interface IExecutionRepository {
   create(input: Omit<Execution, 'id'>): Promise<Execution>
   update(input: Pick<Execution, 'id'> & Partial<Execution>): Promise<Execution>
   findRunning(): Promise<Execution[]>
+  trimByTaskId(taskId: string, keepCount: number): Promise<void>
 }

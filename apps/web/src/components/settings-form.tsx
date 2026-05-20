@@ -14,9 +14,10 @@ const allTimezones: string[] = (() => {
   }
 })()
 
-export function SettingsForm({ currentTimezone }: { currentTimezone: string }) {
+export function SettingsForm({ currentTimezone, currentMaxHistoryItems }: { currentTimezone: string; currentMaxHistoryItems: number }) {
   const { contains } = useFilter({ sensitivity: 'base' })
   const [timezone, setTimezone] = useState<string>(currentTimezone)
+  const [maxHistoryItems, setMaxHistoryItems] = useState<number>(currentMaxHistoryItems)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
 
@@ -24,7 +25,7 @@ export function SettingsForm({ currentTimezone }: { currentTimezone: string }) {
     setSaving(true)
     setMessage(null)
     try {
-      await updateSettingsAction({ timezone })
+      await updateSettingsAction({ timezone, maxHistoryItems })
       setMessage('Saved')
     } catch {
       setMessage('Failed to save')
@@ -76,6 +77,31 @@ export function SettingsForm({ currentTimezone }: { currentTimezone: string }) {
           </Autocomplete>
           <p className="text-xs text-muted-foreground">
             All cron schedules run in this timezone
+          </p>
+        </div>
+      </div>
+      <div>
+        <h2 className="text-sm font-medium text-foreground mb-4">History</h2>
+        <div className="space-y-1.5">
+          <label className="block text-sm text-muted-foreground" htmlFor="maxHistoryItems">
+            Max history items per task
+          </label>
+          <input
+            id="maxHistoryItems"
+            type="number"
+            min={1}
+            value={maxHistoryItems}
+            onChange={e => {
+              const val = parseInt(e.target.value, 10)
+              if (val > 0) {
+                setMaxHistoryItems(val)
+                setMessage(null)
+              }
+            }}
+            className="w-24 rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+          <p className="text-xs text-muted-foreground">
+            Older executions are pruned automatically when this limit is exceeded
           </p>
         </div>
       </div>

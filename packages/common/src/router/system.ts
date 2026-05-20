@@ -22,7 +22,7 @@ export const systemRouter = router({
     }),
 
   getSettings: protectedProcedure.query(({ ctx }) => {
-    return { timezone: ctx.settings.getTimezone() }
+    return { timezone: ctx.settings.getTimezone(), maxHistoryItems: ctx.settings.getMaxHistoryItems() }
   }),
 
   updateSettings: protectedProcedure

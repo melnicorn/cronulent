@@ -55,3 +55,9 @@ export async function resumeTaskAction(id: string) {
   revalidatePath(`/tasks/${id}`)
   return task
 }
+
+export async function clearHistoryAction(taskId: string) {
+  const client = await getTrpcClient()
+  await client.executions.clearByTaskId.mutate({ taskId })
+  revalidatePath(`/tasks/${taskId}`)
+}

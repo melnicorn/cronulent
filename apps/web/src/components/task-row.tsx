@@ -8,7 +8,7 @@ import type { Task } from '@repo/common'
 import { pauseTaskAction, resumeTaskAction, triggerTaskAction, deleteTaskAction, getExecutionStatusAction } from '../actions/tasks'
 import cronstrue from 'cronstrue'
 import { CronExpressionParser } from 'cron-parser'
-import { Button } from '@heroui/react'
+import { AlertDialog, Button } from '@heroui/react'
 
 interface Props {
   task: Task
@@ -17,6 +17,7 @@ interface Props {
 export function TaskRow({ task }: Props) {
   const [isPending, startTransition] = useTransition()
   const [isRunning, setIsRunning] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
   const router = useRouter()
 
   async function handleRun() {
@@ -96,14 +97,40 @@ export function TaskRow({ task }: Props) {
           isDisabled={busy}
           aria-label="Delete task"
           className="hover:text-destructive"
-          onPress={() => {
-            if (confirm(`Delete "${task.name}"? This cannot be undone.`)) {
-              startTransition(async () => { await deleteTaskAction(task.id) })
-            }
-          }}
+          onPress={() => setDeleteOpen(true)}
         >
           <Trash2 size={14} />
         </Button>
+
+        <AlertDialog isOpen={deleteOpen} onOpenChange={setDeleteOpen}>
+          <AlertDialog.Backdrop>
+            <AlertDialog.Container>
+              <AlertDialog.Dialog>
+                <AlertDialog.Header>
+                  <AlertDialog.Heading>Delete task</AlertDialog.Heading>
+                </AlertDialog.Header>
+                <AlertDialog.Body>
+                  Delete &ldquo;{task.name}&rdquo;? This cannot be undone.
+                </AlertDialog.Body>
+                <AlertDialog.Footer>
+                  <Button variant="outline" size="sm" onPress={() => setDeleteOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onPress={() => {
+                      setDeleteOpen(false)
+                      startTransition(async () => { await deleteTaskAction(task.id) })
+                    }}
+                  >
+                    Delete
+                  </Button>
+                </AlertDialog.Footer>
+              </AlertDialog.Dialog>
+            </AlertDialog.Container>
+          </AlertDialog.Backdrop>
+        </AlertDialog>
         {task.enabled ? (
           <Button
             isIconOnly

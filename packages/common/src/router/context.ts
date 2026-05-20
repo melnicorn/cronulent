@@ -16,7 +16,8 @@ export interface AppContext {
   }
   settings: {
     getTimezone(): string
-    updateSettings(s: { timezone: string }): Promise<void>
+    getMaxHistoryItems(): number
+    updateSettings(s: { timezone: string; maxHistoryItems?: number }): Promise<void>
   }
   pluginRegistry: {
     list(): PluginManifest[]

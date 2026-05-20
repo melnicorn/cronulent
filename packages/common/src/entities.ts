@@ -84,4 +84,5 @@ export interface TokenPayload {
 
 export interface SystemSettings {
   timezone: string
+  maxHistoryItems: number
 }
