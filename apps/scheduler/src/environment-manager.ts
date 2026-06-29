@@ -80,9 +80,11 @@ export class EnvironmentManager {
 import os as _os
 import json as _json
 import urllib.request as _urllib_request
+import urllib.error as _urllib_error
 
 _CRONULENT_API_URL = _os.environ.get('CRONULENT_API_URL', 'http://localhost:3001')
 _CRONULENT_TOKEN = _os.environ.get('CRONULENT_INTERNAL_TOKEN', '')
+_CRONULENT_STATE_KEY = _os.environ.get('CRONULENT_STATE_KEY', '')
 
 def _cronulent_dispatch(plugin_id, func, params, strict=False):
     body = _json.dumps({'pluginId': plugin_id, 'func': func, 'params': params, 'strict': strict}).encode()
@@ -93,11 +95,27 @@ def _cronulent_dispatch(plugin_id, func, params, strict=False):
     )
     try:
         with _urllib_request.urlopen(req, timeout=10) as r:
-            r.read()
+            raw = r.read()
+    except _urllib_error.HTTPError as e:
+        detail = ''
+        try:
+            detail = (_json.loads(e.read()).get('error') or {}).get('message') or ''
+        except Exception:
+            pass
+        msg = f'[cronulent] dispatch failed: {detail or e}'
+        if strict:
+            raise RuntimeError(msg) from e
+        print(f'[cronulent] warning: {msg}', flush=True)
+        return None
     except Exception as e:
         if strict:
             raise RuntimeError(f'[cronulent] dispatch failed: {e}') from e
         print(f'[cronulent] warning: dispatch failed: {e}', flush=True)
+        return None
+    try:
+        return _json.loads(raw)['result']['data'].get('result')
+    except Exception:
+        return None
 
 `
 
@@ -107,6 +125,7 @@ import https from 'node:https'
 
 const _cronulentApiUrl = process.env.CRONULENT_API_URL ?? 'http://localhost:3001'
 const _cronulentToken = process.env.CRONULENT_INTERNAL_TOKEN ?? ''
+const _cronulentStateKey = process.env.CRONULENT_STATE_KEY ?? ''
 
 function _cronulentDispatch(pluginId, func, params, strict = false) {
   const body = JSON.stringify({ pluginId, func, params, strict })
@@ -117,14 +136,19 @@ function _cronulentDispatch(pluginId, func, params, strict = false) {
       url,
       { method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body), 'Authorization': \`Bearer \${_cronulentToken}\` } },
       (res) => {
-        res.resume()
+        let data = ''
+        res.on('data', (chunk) => { data += chunk })
         res.on('end', () => {
           if (res.statusCode && res.statusCode >= 400) {
-            const err = new Error(\`[cronulent] dispatch failed: HTTP \${res.statusCode}\`)
+            let detail = ''
+            try { detail = (JSON.parse(data).error || {}).message || '' } catch {}
+            const err = new Error(\`[cronulent] dispatch failed: \${detail || \`HTTP \${res.statusCode}\`}\`)
             if (strict) reject(err)
             else { console.warn(err.message); resolve(undefined) }
           } else {
-            resolve(undefined)
+            let result
+            try { result = JSON.parse(data).result.data.result } catch {}
+            resolve(result)
           }
         })
       }

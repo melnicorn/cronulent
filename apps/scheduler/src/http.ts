@@ -7,6 +7,7 @@ import type { ISchedulerService } from '@repo/common'
 import type { ConfigManager } from './config'
 import type { PluginRegistry } from './plugins/index'
 import type { EnvironmentManager } from './environment-manager'
+import type { StateStore } from './state-store'
 
 export function startHttpServer(opts: {
   port: number
@@ -17,6 +18,7 @@ export function startHttpServer(opts: {
   configManager: ConfigManager
   pluginRegistry: PluginRegistry
   envManager: EnvironmentManager
+  stateStore: StateStore
   internalToken: string
 }): void {
   const server = createHTTPServer({
@@ -53,7 +55,7 @@ export function startHttpServer(opts: {
             const plugin = opts.pluginRegistry.get(pluginId)
             if (!plugin) throw new Error(`Plugin '${pluginId}' not found`)
             const state = opts.configManager.getPluginState(pluginId)
-            await plugin.dispatch(func, params, state.config)
+            return plugin.dispatch(func, params, state.config, { stateStore: opts.stateStore })
           },
         },
         pluginConfig: {
@@ -67,6 +69,10 @@ export function startHttpServer(opts: {
             })
             return opts.envManager.writeSharedHelpers(plugins)
           },
+        },
+        state: {
+          getForTask: (taskId) => opts.stateStore.get(opts.configManager.getStateKey(taskId)),
+          clearForTask: (taskId) => opts.stateStore.clear(opts.configManager.getStateKey(taskId)),
         },
       }
     },

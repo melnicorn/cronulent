@@ -8,6 +8,7 @@ import { TaskExecutor } from './executor'
 import { NodeCronSchedulerService } from './scheduler'
 import { startHttpServer } from './http'
 import { PluginRegistry } from './plugins/index'
+import { StateStore } from './state-store'
 
 const PORT = parseInt(process.env.PORT ?? '3001', 10)
 const DATA_DIR = process.env.DATA_DIR ?? path.join(process.cwd(), 'data')
@@ -27,6 +28,7 @@ const apiUrl = `http://localhost:${PORT}`
 
 const pluginRegistry = new PluginRegistry()
 const envManager = new EnvironmentManager(DATA_DIR)
+const stateStore = new StateStore(DATA_DIR)
 
 const allPluginsWithHelpers = pluginRegistry.list().map(m => {
   const p = pluginRegistry.get(m.id)!
@@ -39,7 +41,7 @@ const schedulerService = new NodeCronSchedulerService(taskRepo, executor, envMan
 
 await schedulerService.start()
 
-startHttpServer({ port: PORT, taskRepo, executionRepo, schedulerService, auth, configManager, pluginRegistry, envManager, internalToken })
+startHttpServer({ port: PORT, taskRepo, executionRepo, schedulerService, auth, configManager, pluginRegistry, envManager, stateStore, internalToken })
 
 process.on('SIGTERM', async () => {
   await schedulerService.stop()

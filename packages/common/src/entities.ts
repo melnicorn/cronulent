@@ -30,6 +30,9 @@ export interface PluginManifest {
   adminConfigSchema: PluginAdminConfigField[]
   pythonFunctionSchema: PluginFunction[]
   nodeFunctionSchema: PluginFunction[]
+  // Built-in hooks (e.g. state) that are always available and not surfaced in
+  // the Manage Plugins admin list.
+  hidden?: boolean
 }
 
 export interface PluginState {

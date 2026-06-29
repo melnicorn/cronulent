@@ -5,6 +5,7 @@ import { Pencil } from 'lucide-react'
 import { TaskActions } from '../../../../components/task-actions'
 import { ExecutionList } from '../../../../components/execution-list'
 import { ScriptViewer } from '../../../../components/script-viewer'
+import { StateSection } from '../../../../components/state-section'
 import { LinkButton } from '../../../../components/link-button'
 import cronstrue from 'cronstrue'
 import { CronExpressionParser } from 'cron-parser'
@@ -17,9 +18,10 @@ export default async function TaskDetailPage({ params }: Props) {
   const { id } = await params
   const client = await getTrpcClient()
 
-  const [task, executions] = await Promise.all([
+  const [task, executions, state] = await Promise.all([
     client.tasks.get.query({ id }).catch(() => null),
     client.executions.list.query({ taskId: id }).catch(() => []),
+    client.tasks.getState.query({ id }).catch(() => ({ found: false, value: null, size: 0, updatedAt: '' })),
   ])
 
   if (!task) notFound()
@@ -107,6 +109,8 @@ export default async function TaskDetailPage({ params }: Props) {
       </div>
 
       <TaskActions task={task} />
+
+      <StateSection taskId={id} state={state} />
 
       <div>
         <h2 className="text-base font-medium text-foreground mb-3">Recent executions</h2>

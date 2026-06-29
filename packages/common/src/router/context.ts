@@ -22,12 +22,16 @@ export interface AppContext {
   pluginRegistry: {
     list(): PluginManifest[]
     get(id: string): { manifest: PluginManifest } | undefined
-    dispatch(pluginId: string, func: string, params: Record<string, unknown>): Promise<void>
+    dispatch(pluginId: string, func: string, params: Record<string, unknown>): Promise<unknown>
   }
   pluginConfig: {
     getState(pluginId: string): { enabled: boolean; config: Record<string, string> }
     setEnabled(pluginId: string, enabled: boolean): Promise<void>
     updateConfig(pluginId: string, config: Record<string, string>): Promise<void>
     writeSharedHelpers(): Promise<void>
+  }
+  state: {
+    getForTask(taskId: string): Promise<{ found: boolean; value: unknown; size: number; updatedAt: string }>
+    clearForTask(taskId: string): Promise<void>
   }
 }

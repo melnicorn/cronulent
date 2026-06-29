@@ -11,7 +11,7 @@
     "start": "node --import tsx/esm src/index.ts",
     "lint": "eslint . --max-warnings 0",
     "check-types": "tsc --noEmit",
-    "test": "echo \"No tests yet\" && exit 0"
+    "test": "node --import tsx/esm --test \"src/**/*.test.ts\""
   },
   "dependencies": {
     "@repo/common": "workspace:*",

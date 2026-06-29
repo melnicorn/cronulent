@@ -61,3 +61,9 @@ export async function clearHistoryAction(taskId: string) {
   await client.executions.clearByTaskId.mutate({ taskId })
   revalidatePath(`/tasks/${taskId}`)
 }
+
+export async function clearStateAction(taskId: string) {
+  const client = await getTrpcClient()
+  await client.tasks.clearState.mutate({ id: taskId })
+  revalidatePath(`/tasks/${taskId}`)
+}

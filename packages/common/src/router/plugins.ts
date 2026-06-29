@@ -14,6 +14,7 @@ export const pluginsRouter = router({
     const manifests = ctx.pluginRegistry.list()
     return {
       plugins: manifests
+        .filter(manifest => !manifest.hidden)
         .map(manifest => {
           const state = ctx.pluginConfig.getState(manifest.id)
           const configured = manifest.adminConfigSchema
@@ -85,7 +86,7 @@ export const pluginsRouter = router({
       if (!ctx.pluginRegistry.get(input.pluginId)) {
         throw new TRPCError({ code: 'NOT_FOUND', message: `Plugin '${input.pluginId}' not found` })
       }
-      await ctx.pluginRegistry.dispatch(input.pluginId, input.func, input.params)
-      return { ok: true as const }
+      const result = await ctx.pluginRegistry.dispatch(input.pluginId, input.func, input.params)
+      return { ok: true as const, result }
     }),
 })

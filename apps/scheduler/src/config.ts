@@ -79,6 +79,14 @@ export class ConfigManager {
     console.log('[config] initialized and saved to', this.filePath)
   }
 
+  // Per-job state key for the state hook. An HMAC of the job id keyed on the
+  // server's JWT secret, so it is stable per job but not guessable from the id
+  // alone. Best-effort isolation only — see StateStore.
+  getStateKey(taskId: string): string {
+    if (!this.config) return ''
+    return crypto.createHmac('sha256', this.config.jwtSecret).update(`task-state:${taskId}`).digest('hex')
+  }
+
   getPluginState(pluginId: string): PluginConfigEntry {
     return this.config?.plugins?.[pluginId] ?? { enabled: false, config: {} }
   }

@@ -69,6 +69,7 @@ export class TaskExecutor {
     const cronulentEnv = {
       CRONULENT_API_URL: this.apiUrl,
       CRONULENT_INTERNAL_TOKEN: this.internalToken,
+      CRONULENT_STATE_KEY: this.configManager.getStateKey(taskId),
     }
     const env = { ...process.env, ...pythonPath, ...task.env, ...cronulentEnv }
     const chunks: { stdout: string[]; stderr: string[] } = { stdout: [], stderr: [] }

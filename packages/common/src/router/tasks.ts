@@ -16,6 +16,23 @@ export const tasksRouter = router({
       return task
     }),
 
+  getState: protectedProcedure
+    .input(z.object({ id: z.string().min(1) }))
+    .query(async ({ input, ctx }) => {
+      const task = await ctx.taskRepo.findById(input.id)
+      if (!task) throw new TRPCError({ code: 'NOT_FOUND' })
+      return ctx.state.getForTask(input.id)
+    }),
+
+  clearState: protectedProcedure
+    .input(z.object({ id: z.string().min(1) }))
+    .mutation(async ({ input, ctx }) => {
+      const task = await ctx.taskRepo.findById(input.id)
+      if (!task) throw new TRPCError({ code: 'NOT_FOUND' })
+      await ctx.state.clearForTask(input.id)
+      return { ok: true as const }
+    }),
+
   create: protectedProcedure
     .input(createTaskInputSchema)
     .mutation(async ({ input, ctx }) => {
