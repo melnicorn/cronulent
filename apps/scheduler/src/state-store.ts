@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import JSON5 from 'json5'
+import { atomicWriteFile } from './atomic-write'
 
 // Maximum size of a single job's saved state, measured on the UTF-8-encoded JSON.
 export const STATE_SIZE_LIMIT_BYTES = 1_048_576 // 1 MiB
@@ -61,8 +62,7 @@ export class StateStore {
   }
 
   private async write(store: Record<string, StateRecord>): Promise<void> {
-    await fs.mkdir(path.dirname(this.filePath), { recursive: true })
-    await fs.writeFile(this.filePath, JSON5.stringify(store, null, 2), 'utf8')
+    await atomicWriteFile(this.filePath, JSON5.stringify(store, null, 2))
   }
 
   /** Load a job's state. Never throws; returns found=false when nothing is stored. */

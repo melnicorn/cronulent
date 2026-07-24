@@ -4,6 +4,7 @@ import JSON5 from 'json5'
 import { nanoid } from 'nanoid'
 import type { Execution } from '@repo/common'
 import type { IExecutionRepository } from '@repo/common'
+import { atomicWriteFile } from '../../atomic-write'
 
 export class Json5ExecutionRepository implements IExecutionRepository {
   private filePath: string
@@ -23,8 +24,7 @@ export class Json5ExecutionRepository implements IExecutionRepository {
   }
 
   private async write(executions: Execution[]): Promise<void> {
-    await fs.mkdir(path.dirname(this.filePath), { recursive: true })
-    await fs.writeFile(this.filePath, JSON5.stringify(executions, null, 2), 'utf8')
+    await atomicWriteFile(this.filePath, JSON5.stringify(executions, null, 2))
   }
 
   async findByTaskId(taskId: string, limit = 50): Promise<Execution[]> {
