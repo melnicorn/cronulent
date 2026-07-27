@@ -215,6 +215,8 @@ _cronulent_dispatch() {
         return { cmd: 'uv', args: ['run', '--no-sync', 'script.py', ...params], cwd: dir }
       case 'node-volta':
         return { cmd: 'volta', args: ['run', 'node', 'script.mjs', ...params], cwd: dir }
+      default:
+        throw new Error(`Unsupported commandType: ${task.commandType}`)
     }
   }
 }

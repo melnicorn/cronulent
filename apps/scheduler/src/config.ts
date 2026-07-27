@@ -12,6 +12,13 @@ interface PluginConfigEntry {
   config: Record<string, string>
 }
 
+export interface ApiKeyEntry {
+  id: string
+  label: string
+  hash: string
+  createdAt: string
+}
+
 interface Config {
   passwordHash: string
   passwordSalt: string
@@ -19,6 +26,17 @@ interface Config {
   timezone?: string
   maxHistoryItems?: number
   plugins?: Record<string, PluginConfigEntry>
+  apiKeys?: ApiKeyEntry[]
+}
+
+// Prefix on every issued key, so the HTTP layer can tell an API key from a JWT
+// without a disk read.
+export const API_KEY_PREFIX = 'crn_'
+
+// Keys are 256 bits of randomness, so a plain SHA-256 is enough here — unlike a
+// password, there is nothing to brute-force.
+function hashApiKey(key: string): string {
+  return crypto.createHash('sha256').update(key).digest('hex')
 }
 
 export class ConfigManager {
@@ -110,5 +128,56 @@ export class ConfigManager {
     await atomicWriteFile(this.filePath, JSON5.stringify(updated, null, 2))
     this.config = updated
     console.log(`[config] plugin ${pluginId} config updated`)
+  }
+
+  /** Mint a new API key. The plaintext is returned once and never stored. */
+  async addApiKey(label: string): Promise<{ id: string; key: string }> {
+    const current = this.get()
+    const key = `${API_KEY_PREFIX}${crypto.randomBytes(32).toString('base64url')}`
+    const id = crypto.randomBytes(4).toString('hex')
+    const entry: ApiKeyEntry = { id, label, hash: hashApiKey(key), createdAt: new Date().toISOString() }
+    const updated: Config = { ...current, apiKeys: [...(current.apiKeys ?? []), entry] }
+    await atomicWriteFile(this.filePath, JSON5.stringify(updated, null, 2))
+    this.config = updated
+    return { id, key }
+  }
+
+  listApiKeys(): Omit<ApiKeyEntry, 'hash'>[] {
+    return (this.config?.apiKeys ?? []).map(({ id, label, createdAt }) => ({ id, label, createdAt }))
+  }
+
+  async revokeApiKey(id: string): Promise<boolean> {
+    const current = this.get()
+    const remaining = (current.apiKeys ?? []).filter(k => k.id !== id)
+    if (remaining.length === (current.apiKeys ?? []).length) return false
+    const updated: Config = { ...current, apiKeys: remaining }
+    await atomicWriteFile(this.filePath, JSON5.stringify(updated, null, 2))
+    this.config = updated
+    return true
+  }
+
+  /**
+   * Resolve a presented API key to its id, or null if it matches none.
+   *
+   * Reads config from disk rather than trusting the in-memory copy: keys are
+   * minted by the CLI in a separate process, so a key created a moment ago
+   * would otherwise not be usable until the scheduler restarted.
+   */
+  async verifyApiKey(presented: string): Promise<string | null> {
+    let config: Config
+    try {
+      config = JSON5.parse(await fs.readFile(this.filePath, 'utf8')) as Config
+    } catch {
+      return null
+    }
+
+    const presentedHash = Buffer.from(hashApiKey(presented), 'hex')
+    for (const entry of config.apiKeys ?? []) {
+      const stored = Buffer.from(entry.hash, 'hex')
+      if (stored.length === presentedHash.length && crypto.timingSafeEqual(stored, presentedHash)) {
+        return entry.id
+      }
+    }
+    return null
   }
 }

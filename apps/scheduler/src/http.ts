@@ -4,7 +4,7 @@ import type { AppContext } from '@repo/common'
 import type { AuthService } from './auth'
 import type { ITaskRepository, IExecutionRepository } from '@repo/common'
 import type { ISchedulerService } from '@repo/common'
-import type { ConfigManager } from './config'
+import { API_KEY_PREFIX, type ConfigManager } from './config'
 import type { PluginRegistry } from './plugins/index'
 import type { EnvironmentManager } from './environment-manager'
 import type { StateStore } from './state-store'
@@ -29,7 +29,9 @@ export function startHttpServer(opts: {
       const isInternalCall = bearerToken === opts.internalToken
       let userId: string | null = null
       if (!isInternalCall && bearerToken) {
-        userId = await opts.auth.verifyToken(bearerToken)
+        userId = bearerToken.startsWith(API_KEY_PREFIX)
+          ? await opts.auth.verifyApiKey(bearerToken)
+          : await opts.auth.verifyToken(bearerToken)
       }
       return {
         taskRepo: opts.taskRepo,

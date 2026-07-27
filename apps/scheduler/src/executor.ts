@@ -57,21 +57,50 @@ export class TaskExecutor {
   }
 
   private async runProcess(taskId: string, executionId: string): Promise<void> {
-    const task = await this.taskRepo.findById(taskId)
-    if (!task) throw new Error(`Task ${taskId} not found`)
-
     const start = Date.now()
-    const { cmd, args, cwd } = this.envManager.getRunCommand(task)
-    const sharedDir = this.envManager.sharedDir
-    const pythonPath = task.commandType === 'python-uv'
-      ? { PYTHONPATH: process.env.PYTHONPATH ? `${sharedDir}:${process.env.PYTHONPATH}` : sharedDir }
-      : {}
-    const cronulentEnv = {
-      CRONULENT_API_URL: this.apiUrl,
-      CRONULENT_INTERNAL_TOKEN: this.internalToken,
-      CRONULENT_STATE_KEY: this.configManager.getStateKey(taskId),
+    let task: import('@repo/common').Task
+    let cmd: string
+    let args: string[]
+    let cwd: string
+    let env: NodeJS.ProcessEnv
+
+    try {
+      const found = await this.taskRepo.findById(taskId)
+      if (!found) throw new Error(`Task ${taskId} not found`)
+      task = found
+
+      const runCommand = this.envManager.getRunCommand(task)
+      cmd = runCommand.cmd
+      args = runCommand.args
+      cwd = runCommand.cwd
+      const sharedDir = this.envManager.sharedDir
+      const pythonPath = task.commandType === 'python-uv'
+        ? { PYTHONPATH: process.env.PYTHONPATH ? `${sharedDir}:${process.env.PYTHONPATH}` : sharedDir }
+        : {}
+      const cronulentEnv = {
+        CRONULENT_API_URL: this.apiUrl,
+        CRONULENT_INTERNAL_TOKEN: this.internalToken,
+        CRONULENT_STATE_KEY: this.configManager.getStateKey(taskId),
+      }
+      env = { ...process.env, ...pythonPath, ...task.env, ...cronulentEnv }
+    } catch (err) {
+      // Anything that throws before the child process's event handlers are wired up
+      // must still resolve the execution — otherwise it's stuck at 'running' forever,
+      // which then blocks every future scheduled run of this task (see execute()'s
+      // already-running check above).
+      await this.executionRepo.update({
+        id: executionId,
+        finishedAt: new Date().toISOString(),
+        durationMs: Date.now() - start,
+        exitCode: -1,
+        status: 'failed',
+        stdout: '',
+        stderr: err instanceof Error ? err.message : String(err),
+      })
+      await this.executionRepo.trimByTaskId(taskId, this.configManager.getMaxHistoryItems())
+      return
     }
-    const env = { ...process.env, ...pythonPath, ...task.env, ...cronulentEnv }
+
     const chunks: { stdout: string[]; stderr: string[] } = { stdout: [], stderr: [] }
 
     const exitCode = await new Promise<number>(resolve => {

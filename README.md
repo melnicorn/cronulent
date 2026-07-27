@@ -27,6 +27,32 @@ docker compose -f docker-compose.prod.yml pull
 docker compose -f docker-compose.prod.yml up --force-recreate
 ```
 
+### API keys
+
+The scheduler's API (port 3001) is the same one the web UI uses. To call it from
+scripts or the command line, mint an API key:
+
+```bash
+docker compose -f docker-compose.prod.yml exec scheduler pnpm keys create "laptop"
+```
+
+The key is shown once. `pnpm keys list` and `pnpm keys revoke <id>` manage
+existing keys; new and revoked keys take effect immediately, without a restart.
+
+Pass it as a bearer token. Queries are GET with a URL-encoded `input`, mutations
+are POST with a JSON body:
+
+```bash
+curl -H "Authorization: Bearer $CRONULENT_KEY" http://<host>:3001/tasks.list
+
+curl -X POST http://<host>:3001/tasks.trigger \
+  -H "Authorization: Bearer $CRONULENT_KEY" -H "Content-Type: application/json" \
+  -d '{"id":"<task-id>"}'
+```
+
+A key grants the same full access as a logged-in admin, so treat it like a
+password and keep the API off untrusted networks.
+
 ## What's inside
 
 | Package | Description |
