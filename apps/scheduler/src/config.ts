@@ -3,6 +3,7 @@ import path from 'node:path'
 import crypto from 'node:crypto'
 import { promisify } from 'node:util'
 import JSON5 from 'json5'
+import { atomicWriteFile } from './atomic-write'
 
 const scrypt = promisify(crypto.scrypt)
 
@@ -63,7 +64,7 @@ export class ConfigManager {
   async updateSettings(settings: { timezone: string; maxHistoryItems?: number }): Promise<void> {
     const current = this.get()
     const updated: Config = { ...current, ...settings }
-    await fs.writeFile(this.filePath, JSON5.stringify(updated, null, 2))
+    await atomicWriteFile(this.filePath, JSON5.stringify(updated, null, 2))
     this.config = updated
     console.log('[config] settings updated')
   }
@@ -73,8 +74,7 @@ export class ConfigManager {
     const hash = ((await scrypt(password, salt, 64)) as Buffer).toString('hex')
     const jwtSecret = crypto.randomBytes(32).toString('hex')
     const config: Config = { passwordHash: hash, passwordSalt: salt, jwtSecret }
-    await fs.mkdir(path.dirname(this.filePath), { recursive: true })
-    await fs.writeFile(this.filePath, JSON5.stringify(config, null, 2))
+    await atomicWriteFile(this.filePath, JSON5.stringify(config, null, 2))
     this.config = config
     console.log('[config] initialized and saved to', this.filePath)
   }
@@ -96,7 +96,7 @@ export class ConfigManager {
     const plugins = { ...current.plugins }
     plugins[pluginId] = { ...this.getPluginState(pluginId), enabled }
     const updated: Config = { ...current, plugins }
-    await fs.writeFile(this.filePath, JSON5.stringify(updated, null, 2))
+    await atomicWriteFile(this.filePath, JSON5.stringify(updated, null, 2))
     this.config = updated
     console.log(`[config] plugin ${pluginId} ${enabled ? 'enabled' : 'disabled'}`)
   }
@@ -107,7 +107,7 @@ export class ConfigManager {
     const existing = this.getPluginState(pluginId)
     plugins[pluginId] = { ...existing, config: { ...existing.config, ...config } }
     const updated: Config = { ...current, plugins }
-    await fs.writeFile(this.filePath, JSON5.stringify(updated, null, 2))
+    await atomicWriteFile(this.filePath, JSON5.stringify(updated, null, 2))
     this.config = updated
     console.log(`[config] plugin ${pluginId} config updated`)
   }

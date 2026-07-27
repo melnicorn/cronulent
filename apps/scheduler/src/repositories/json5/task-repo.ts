@@ -5,6 +5,7 @@ import { nanoid } from 'nanoid'
 import type { Task } from '@repo/common'
 import type { ITaskRepository } from '@repo/common'
 import type { CreateTaskInput, UpdateTaskInput } from '@repo/common'
+import { atomicWriteFile } from '../../atomic-write'
 
 export class Json5TaskRepository implements ITaskRepository {
   private filePath: string
@@ -24,8 +25,7 @@ export class Json5TaskRepository implements ITaskRepository {
   }
 
   private async write(tasks: Task[]): Promise<void> {
-    await fs.mkdir(path.dirname(this.filePath), { recursive: true })
-    await fs.writeFile(this.filePath, JSON5.stringify(tasks, null, 2), 'utf8')
+    await atomicWriteFile(this.filePath, JSON5.stringify(tasks, null, 2))
   }
 
   async findAll(): Promise<Task[]> {
