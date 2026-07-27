@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "node --watch --import tsx/esm src/index.ts",
     "start": "node --import tsx/esm src/index.ts",
+    "keys": "node --import tsx/esm src/cli.ts",
     "lint": "eslint . --max-warnings 0",
     "check-types": "tsc --noEmit",
     "test": "node --import tsx/esm --test \"src/**/*.test.ts\""
