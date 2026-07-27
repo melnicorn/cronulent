@@ -7,6 +7,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
     environment:
       - PORT=3001
+      - CRONULENT_SERVICE_TOKEN_HASH=${CRONULENT_SERVICE_TOKEN_HASH:-}
     restart: unless-stopped
 
   web:
@@ -14,13 +15,16 @@ services:
     ports:
       - "3000:3000"
     volumes:
+      - web-data:/app/apps/web/data
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     environment:
       - SCHEDULER_URL=http://scheduler:3001
+      - CRONULENT_SERVICE_TOKEN=${CRONULENT_SERVICE_TOKEN:-}
     depends_on:
       - scheduler
     restart: unless-stopped
 
 volumes:
   scheduler-data:
+  web-data:

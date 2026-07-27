@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { logoutAction } from '../../actions/auth'
-import { LayoutList, Puzzle, Settings } from 'lucide-react'
+import { KeyRound, LayoutList, Puzzle, Settings } from 'lucide-react'
 import { ThemeToggle } from '../../components/theme-toggle'
 import { Button } from '@heroui/react'
 import { getTrpcClient } from '../../lib/trpc'
@@ -84,6 +84,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
           >
             <Puzzle size={16} />
             <span className="hidden sm:inline">Plugins</span>
+          </Link>
+          <Link
+            href="/api-keys"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <KeyRound size={16} />
+            <span className="hidden sm:inline">API Keys</span>
           </Link>
           <Link
             href="/settings"

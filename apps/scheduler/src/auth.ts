@@ -40,13 +40,6 @@ export class AuthService {
     }
   }
 
-  /** Resolve an API key to the subject it authenticates as, or null if invalid. */
-  async verifyApiKey(key: string): Promise<string | null> {
-    if (!this.configManager.isInitialized()) return null
-    const id = await this.configManager.verifyApiKey(key)
-    return id ? `apikey:${id}` : null
-  }
-
   async initialize(password: string): Promise<void> {
     await this.configManager.initialize(password)
   }
