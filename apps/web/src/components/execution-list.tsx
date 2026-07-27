@@ -67,17 +67,28 @@ function ExecutionRow({ execution: e }: { execution: Execution }) {
   )
 }
 
+const STATUS_LABELS: Record<ExecutionStatus, string> = {
+  success: 'Succeeded',
+  failed: 'Failed',
+  running: 'Running',
+  skipped: 'Skipped — another execution of this task was already running',
+  interrupted: 'Interrupted — the scheduler restarted while this was running',
+}
+
 function StatusIcon({ status }: { status: ExecutionStatus }) {
-  switch (status) {
-    case 'success':
-      return <CircleCheck size={16} className="text-green-500 shrink-0" />
-    case 'failed':
-      return <CircleX size={16} className="text-destructive shrink-0" />
-    case 'running':
-      return <Clock size={16} className="text-primary shrink-0 animate-pulse" />
-    case 'skipped':
-      return <SkipForward size={16} className="text-muted-foreground shrink-0" />
-    default:
-      return <CircleX size={16} className="text-muted-foreground shrink-0" />
-  }
+  const icon = (() => {
+    switch (status) {
+      case 'success':
+        return <CircleCheck size={16} className="text-green-500 shrink-0" />
+      case 'failed':
+        return <CircleX size={16} className="text-destructive shrink-0" />
+      case 'running':
+        return <Clock size={16} className="text-primary shrink-0 animate-pulse" />
+      case 'skipped':
+        return <SkipForward size={16} className="text-muted-foreground shrink-0" />
+      default:
+        return <CircleX size={16} className="text-muted-foreground shrink-0" />
+    }
+  })()
+  return <span title={STATUS_LABELS[status] ?? status}>{icon}</span>
 }
