@@ -3,6 +3,7 @@
 **/dist
 apps/scheduler/data
 apps/scheduler/.env
+apps/web/data
 **/.env*.local
 **/*.log
 .git

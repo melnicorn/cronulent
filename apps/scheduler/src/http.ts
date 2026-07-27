@@ -4,7 +4,8 @@ import type { AppContext } from '@repo/common'
 import type { AuthService } from './auth'
 import type { ITaskRepository, IExecutionRepository } from '@repo/common'
 import type { ISchedulerService } from '@repo/common'
-import { API_KEY_PREFIX, type ConfigManager } from './config'
+import crypto from 'node:crypto'
+import type { ConfigManager } from './config'
 import type { PluginRegistry } from './plugins/index'
 import type { EnvironmentManager } from './environment-manager'
 import type { StateStore } from './state-store'
@@ -20,7 +21,18 @@ export function startHttpServer(opts: {
   envManager: EnvironmentManager
   stateStore: StateStore
   internalToken: string
+  serviceTokenHash: string
 }): void {
+  // The web app authenticates as a service with a token we only ever hold the
+  // hash of. Task scripts run in this container and inherit its environment, so
+  // there is deliberately no usable credential here for one to steal.
+  const isServiceCall = (bearerToken: string): boolean => {
+    if (!opts.serviceTokenHash || !bearerToken) return false
+    const presented = crypto.createHash('sha256').update(bearerToken).digest()
+    const expected = Buffer.from(opts.serviceTokenHash, 'hex')
+    return presented.length === expected.length && crypto.timingSafeEqual(presented, expected)
+  }
+
   const server = createHTTPServer({
     router: appRouter,
     createContext: async ({ req }): Promise<AppContext> => {
@@ -29,9 +41,9 @@ export function startHttpServer(opts: {
       const isInternalCall = bearerToken === opts.internalToken
       let userId: string | null = null
       if (!isInternalCall && bearerToken) {
-        userId = bearerToken.startsWith(API_KEY_PREFIX)
-          ? await opts.auth.verifyApiKey(bearerToken)
-          : await opts.auth.verifyToken(bearerToken)
+        // Note: no isInternalCall here — plugins.dispatch stays reserved for
+        // task scripts, out of reach of anything coming through the web app.
+        userId = isServiceCall(bearerToken) ? 'service' : await opts.auth.verifyToken(bearerToken)
       }
       return {
         taskRepo: opts.taskRepo,

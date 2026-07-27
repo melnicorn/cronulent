@@ -33,9 +33,11 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Scheduler runtime data
+# Runtime data
 apps/scheduler/data/
 apps/scheduler/.env
+apps/web/data/
+.env
 
 # Misc
 .DS_Store

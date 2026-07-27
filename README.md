@@ -27,31 +27,52 @@ docker compose -f docker-compose.prod.yml pull
 docker compose -f docker-compose.prod.yml up --force-recreate
 ```
 
-### API keys
+### Admin API
 
-The scheduler's API (port 3001) is the same one the web UI uses. To call it from
-scripts or the command line, mint an API key:
+Tasks and executions can be driven from scripts or the command line through the
+web app on port 3000. The scheduler is never exposed — the web app authenticates
+the caller and forwards the request over the internal network.
+
+**Setup.** Generate a service token pair and put it in a `.env` file next to your
+compose file (see [.env.example](.env.example)):
 
 ```bash
-docker compose -f docker-compose.prod.yml exec scheduler pnpm keys create "laptop"
+TOKEN=$(openssl rand -base64 32)
+echo "CRONULENT_SERVICE_TOKEN=$TOKEN" >> .env
+echo "CRONULENT_SERVICE_TOKEN_HASH=$(printf %s "$TOKEN" | openssl dgst -sha256 -hex | awk '{print $2}')" >> .env
 ```
 
-The key is shown once. `pnpm keys list` and `pnpm keys revoke <id>` manage
-existing keys; new and revoked keys take effect immediately, without a restart.
+The web app holds the token; the scheduler holds only its hash. Restart both
+containers after changing it.
 
-Pass it as a bearer token. Queries are GET with a URL-encoded `input`, mutations
-are POST with a JSON body:
+**Create a key** under *API Keys* in the web UI. It is shown once and stored
+only as a hash — regenerate it if you lose it.
+
+**Call it.** Procedure names map onto paths. Queries are GET with a URL-encoded
+`input`; mutations are POST with a JSON body (send at least `{}`):
 
 ```bash
-curl -H "Authorization: Bearer $CRONULENT_KEY" http://<host>:3001/tasks.list
+curl -H "Authorization: Bearer $CRONULENT_KEY" \
+  "http://<host>:3000/api/admin/tasks.list"
 
-curl -X POST http://<host>:3001/tasks.trigger \
+curl -X POST "http://<host>:3000/api/admin/tasks.trigger" \
   -H "Authorization: Bearer $CRONULENT_KEY" -H "Content-Type: application/json" \
   -d '{"id":"<task-id>"}'
+
+curl -G -H "Authorization: Bearer $CRONULENT_KEY" \
+  --data-urlencode 'input={"taskId":"<task-id>"}' \
+  "http://<host>:3000/api/admin/executions.list"
 ```
 
-A key grants the same full access as a logged-in admin, so treat it like a
-password and keep the API off untrusted networks.
+Available: `tasks.list`, `tasks.get`, `tasks.getState`, `tasks.create`,
+`tasks.update`, `tasks.delete`, `tasks.trigger`, `tasks.pause`, `tasks.resume`,
+`tasks.clearState`, `executions.list`, `executions.get`, `executions.resetStuck`,
+`executions.clearByTaskId`, and `system.getSettings`. Authentication and plugin
+procedures are not reachable with an API key.
+
+> **A key is equivalent to shell access on the host.** It can rewrite a task's
+> script and run it, and scripts are not yet sandboxed. Treat it like an SSH key,
+> and revoke it in the UI when it is no longer needed.
 
 ## What's inside
 

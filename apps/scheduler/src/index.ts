@@ -26,6 +26,11 @@ if (!auth.isInitialized()) {
 
 const internalToken = randomUUID()
 const apiUrl = `http://localhost:${PORT}`
+const serviceTokenHash = process.env.CRONULENT_SERVICE_TOKEN_HASH ?? ''
+
+if (!serviceTokenHash) {
+  console.log('[scheduler] CRONULENT_SERVICE_TOKEN_HASH not set — the admin API will be unavailable.')
+}
 
 const pluginRegistry = new PluginRegistry()
 const envManager = new EnvironmentManager(DATA_DIR)
@@ -46,7 +51,7 @@ await reconcileOrphanedExecutions(executionRepo)
 
 await schedulerService.start()
 
-startHttpServer({ port: PORT, taskRepo, executionRepo, schedulerService, auth, configManager, pluginRegistry, envManager, stateStore, internalToken })
+startHttpServer({ port: PORT, taskRepo, executionRepo, schedulerService, auth, configManager, pluginRegistry, envManager, stateStore, internalToken, serviceTokenHash })
 
 process.on('SIGTERM', async () => {
   await schedulerService.stop()
