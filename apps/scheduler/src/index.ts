@@ -9,6 +9,7 @@ import { NodeCronSchedulerService } from './scheduler'
 import { startHttpServer } from './http'
 import { PluginRegistry } from './plugins/index'
 import { StateStore } from './state-store'
+import { reconcileOrphanedExecutions } from './reconcile'
 
 const PORT = parseInt(process.env.PORT ?? '3001', 10)
 const DATA_DIR = process.env.DATA_DIR ?? path.join(process.cwd(), 'data')
@@ -38,6 +39,10 @@ await envManager.writeSharedHelpers(allPluginsWithHelpers)
 
 const executor = new TaskExecutor(taskRepo, executionRepo, envManager, pluginRegistry, configManager, apiUrl, internalToken)
 const schedulerService = new NodeCronSchedulerService(taskRepo, executor, envManager, () => configManager.getTimezone())
+
+// Must run before scheduling: a run orphaned by the last shutdown would
+// otherwise look live and cause every fire of that task to be skipped.
+await reconcileOrphanedExecutions(executionRepo)
 
 await schedulerService.start()
 
