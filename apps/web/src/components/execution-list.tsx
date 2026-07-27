@@ -72,7 +72,7 @@ const STATUS_LABELS: Record<ExecutionStatus, string> = {
   failed: 'Failed',
   running: 'Running',
   skipped: 'Skipped — another execution of this task was already running',
-  interrupted: 'Interrupted — the scheduler restarted while this was running',
+  interrupted: 'Interrupted — this run never finished and was reset',
 }
 
 function StatusIcon({ status }: { status: ExecutionStatus }) {
