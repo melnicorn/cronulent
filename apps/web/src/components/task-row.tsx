@@ -3,12 +3,12 @@
 import Link from 'next/link'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2, Pause, Play, TriangleAlert, Trash2 } from 'lucide-react'
+import { CirclePlay, Loader2, Pause, Play, Trash2 } from 'lucide-react'
 import type { Task } from '@repo/common'
 import { pauseTaskAction, resumeTaskAction, triggerTaskAction, deleteTaskAction, getExecutionStatusAction } from '../actions/tasks'
 import cronstrue from 'cronstrue'
 import { CronExpressionParser } from 'cron-parser'
-import { AlertDialog, Button } from '@heroui/react'
+import { AlertDialog, Button, Tooltip } from '@heroui/react'
 
 interface Props {
   task: Task
@@ -80,27 +80,33 @@ export function TaskRow({ task }: Props) {
         >
           {task.enabled ? 'active' : 'paused'}
         </span>
-        <Button
-          isIconOnly
-          variant="ghost"
-          size="sm"
-          isDisabled={busy}
-          aria-label={isRunning ? 'Running…' : 'Run now'}
-          onPress={handleRun}
-        >
-          {isRunning ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
-        </Button>
-        <Button
-          isIconOnly
-          variant="ghost"
-          size="sm"
-          isDisabled={busy}
-          aria-label="Delete task"
-          className="hover:text-destructive"
-          onPress={() => setDeleteOpen(true)}
-        >
-          <Trash2 size={14} />
-        </Button>
+        <Tooltip>
+          <Button
+            isIconOnly
+            variant="ghost"
+            size="sm"
+            isDisabled={busy}
+            aria-label={isRunning ? 'Running…' : 'Run now'}
+            onPress={handleRun}
+          >
+            {isRunning ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
+          </Button>
+          <Tooltip.Content>{isRunning ? 'Running…' : 'Run once now'}</Tooltip.Content>
+        </Tooltip>
+        <Tooltip>
+          <Button
+            isIconOnly
+            variant="ghost"
+            size="sm"
+            isDisabled={busy}
+            aria-label="Delete task"
+            className="hover:text-destructive"
+            onPress={() => setDeleteOpen(true)}
+          >
+            <Trash2 size={14} />
+          </Button>
+          <Tooltip.Content>Delete task</Tooltip.Content>
+        </Tooltip>
 
         <AlertDialog isOpen={deleteOpen} onOpenChange={setDeleteOpen}>
           <AlertDialog.Backdrop>
@@ -132,26 +138,30 @@ export function TaskRow({ task }: Props) {
           </AlertDialog.Backdrop>
         </AlertDialog>
         {task.enabled ? (
-          <Button
-            isIconOnly
-            variant="ghost"
-            size="sm"
-            isDisabled={busy}
-            aria-label="Pause task"
-            onPress={() => startTransition(async () => { await pauseTaskAction(task.id) })}
-          >
-            <Pause size={14} />
-          </Button>
+          <Tooltip>
+            <Button
+              isIconOnly
+              variant="ghost"
+              size="sm"
+              isDisabled={busy}
+              aria-label="Pause schedule"
+              onPress={() => startTransition(async () => { await pauseTaskAction(task.id) })}
+            >
+              <Pause size={14} />
+            </Button>
+            <Tooltip.Content>Pause schedule</Tooltip.Content>
+          </Tooltip>
         ) : (
+          // Spelled out rather than icon-only: a paused task is the state where
+          // you most need to know the way out, and an icon alone doesn't say it.
           <Button
-            isIconOnly
-            variant="ghost"
+            variant="outline"
             size="sm"
             isDisabled={busy}
-            aria-label="Resume task"
             onPress={() => startTransition(async () => { await resumeTaskAction(task.id) })}
           >
-            <TriangleAlert size={14} />
+            <CirclePlay size={14} />
+            Resume
           </Button>
         )}
       </div>
