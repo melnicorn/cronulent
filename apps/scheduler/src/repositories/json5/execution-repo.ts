@@ -5,9 +5,13 @@ import { nanoid } from 'nanoid'
 import type { Execution } from '@repo/common'
 import type { IExecutionRepository } from '@repo/common'
 import { atomicWriteFile } from '../../atomic-write'
+import { createSerializer } from '../../serialize'
 
 export class Json5ExecutionRepository implements IExecutionRepository {
   private filePath: string
+  // Tasks that fire in the same minute would otherwise interleave their
+  // read-modify-write and silently drop one another's rows.
+  private serialize = createSerializer()
 
   constructor(dataDir: string) {
     this.filePath = path.join(dataDir, 'executions.json5')
@@ -41,22 +45,26 @@ export class Json5ExecutionRepository implements IExecutionRepository {
   }
 
   async create(input: Omit<Execution, 'id'>): Promise<Execution> {
-    const all = await this.read()
-    const execution: Execution = { id: nanoid(), ...input }
-    all.push(execution)
-    await this.write(all)
-    return execution
+    return this.serialize(async () => {
+      const all = await this.read()
+      const execution: Execution = { id: nanoid(), ...input }
+      all.push(execution)
+      await this.write(all)
+      return execution
+    })
   }
 
   async update(input: Pick<Execution, 'id'> & Partial<Execution>): Promise<Execution> {
-    const all = await this.read()
-    const idx = all.findIndex(e => e.id === input.id)
-    if (idx === -1) throw new Error(`Execution ${input.id} not found`)
-    const existing = all[idx]!
-    const updated: Execution = { ...existing, ...input }
-    all[idx] = updated
-    await this.write(all)
-    return updated
+    return this.serialize(async () => {
+      const all = await this.read()
+      const idx = all.findIndex(e => e.id === input.id)
+      if (idx === -1) throw new Error(`Execution ${input.id} not found`)
+      const existing = all[idx]!
+      const updated: Execution = { ...existing, ...input }
+      all[idx] = updated
+      await this.write(all)
+      return updated
+    })
   }
 
   async findRunning(): Promise<Execution[]> {
@@ -65,12 +73,14 @@ export class Json5ExecutionRepository implements IExecutionRepository {
   }
 
   async trimByTaskId(taskId: string, keepCount: number): Promise<void> {
-    const all = await this.read()
-    const others = all.filter(e => e.taskId !== taskId)
-    const forTask = all
-      .filter(e => e.taskId === taskId)
-      .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
-      .slice(0, keepCount)
-    await this.write([...others, ...forTask])
+    return this.serialize(async () => {
+      const all = await this.read()
+      const others = all.filter(e => e.taskId !== taskId)
+      const forTask = all
+        .filter(e => e.taskId === taskId)
+        .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
+        .slice(0, keepCount)
+      await this.write([...others, ...forTask])
+    })
   }
 }
