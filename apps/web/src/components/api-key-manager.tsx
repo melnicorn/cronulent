@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { AlertDialog, Button, Input, Label, Modal, TextField } from '@heroui/react'
 import { KeyRound, Trash2 } from 'lucide-react'
 import type { ApiKeyInfo } from '../lib/api-keys'
+import { copyText } from '../lib/clipboard'
 import { createKeyAction, regenerateKeyAction, revokeKeyAction } from '../actions/api-keys'
 
 interface Props {
@@ -18,15 +19,21 @@ export function ApiKeyManager({ keys, serviceTokenConfigured }: Props) {
   const [isPending, startTransition] = useTransition()
   const [newKey, setNewKey] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [copyFailed, setCopyFailed] = useState(false)
   const [revokeTarget, setRevokeTarget] = useState<ApiKeyInfo | null>(null)
   const [regenerateTarget, setRegenerateTarget] = useState<ApiKeyInfo | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   async function handleCopy() {
     if (!newKey) return
-    await navigator.clipboard.writeText(newKey)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
+    setCopyFailed(false)
+    if (await copyText(newKey)) {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } else {
+      // Never leave the user stuck: the key is selectable in the block above.
+      setCopyFailed(true)
+    }
   }
 
   function handleCreate() {
@@ -153,6 +160,11 @@ export function ApiKeyManager({ keys, serviceTokenConfigured }: Props) {
                     {copied ? 'Copied!' : 'Copy'}
                   </button>
                 </div>
+                {copyFailed && (
+                  <p className="text-xs text-destructive">
+                    Couldn&apos;t copy automatically — select the key above and copy it manually.
+                  </p>
+                )}
               </Modal.Body>
               <Modal.Footer>
                 <Button size="sm" onPress={() => setNewKey(null)}>Done</Button>
