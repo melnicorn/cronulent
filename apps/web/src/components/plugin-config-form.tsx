@@ -4,6 +4,7 @@ import { Button, Input, Label, Switch, TextField } from '@heroui/react'
 import { useState } from 'react'
 import type { PluginManifest, PluginAdminConfigField, PluginFunction } from '@repo/common'
 import { setPluginEnabledAction, updatePluginConfigAction } from '../actions/plugins'
+import { copyText } from '../lib/clipboard'
 
 interface ConfigField extends PluginAdminConfigField {
   value: string
@@ -165,7 +166,7 @@ function FunctionDocs({
   const snippet = buildSnippet(fn, importLine, pluginId, runtime)
 
   async function handleCopy() {
-    await navigator.clipboard.writeText(snippet)
+    if (!(await copyText(snippet))) return
     setCopied(true)
     setTimeout(() => setCopied(false), 1500)
   }
