@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { ChevronDown, ChevronRight, Copy, Check } from 'lucide-react'
 import { AlertDialog, Button } from '@heroui/react'
 import { clearStateAction } from '../actions/tasks'
+import { copyText } from '../lib/clipboard'
 
 interface Props {
   taskId: string
@@ -27,7 +28,7 @@ export function StateSection({ taskId, state }: Props) {
   const pretty = state.found ? JSON.stringify(state.value, null, 2) : ''
 
   async function handleCopy() {
-    await navigator.clipboard.writeText(pretty)
+    if (!(await copyText(pretty))) return
     setCopied(true)
     setTimeout(() => setCopied(false), 1500)
   }
