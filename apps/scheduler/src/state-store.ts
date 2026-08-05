@@ -2,6 +2,7 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import JSON5 from 'json5'
 import { atomicWriteFile } from './atomic-write'
+import { createSerializer } from './serialize'
 
 // Maximum size of a single job's saved state, measured on the UTF-8-encoded JSON.
 export const STATE_SIZE_LIMIT_BYTES = 1_048_576 // 1 MiB
@@ -43,6 +44,9 @@ export interface StateLookup {
  */
 export class StateStore {
   private filePath: string
+  // Two jobs running in the same minute both write here via cronhooks.state,
+  // and an interleaved read-modify-write would drop one job's state entirely.
+  private serialize = createSerializer()
 
   constructor(dataDir: string) {
     this.filePath = path.join(dataDir, 'state.json5')
@@ -90,17 +94,21 @@ export class StateStore {
       throw new StateTooLargeError(size)
     }
 
-    const store = await this.read()
-    store[key] = { value, size, updatedAt: nowIso }
-    await this.write(store)
+    return this.serialize(async () => {
+      const store = await this.read()
+      store[key] = { value, size, updatedAt: nowIso }
+      await this.write(store)
+    })
   }
 
   /** Delete a job's saved state. */
   async clear(key: string): Promise<void> {
-    const store = await this.read()
-    if (key in store) {
-      delete store[key]
-      await this.write(store)
-    }
+    return this.serialize(async () => {
+      const store = await this.read()
+      if (key in store) {
+        delete store[key]
+        await this.write(store)
+      }
+    })
   }
 }

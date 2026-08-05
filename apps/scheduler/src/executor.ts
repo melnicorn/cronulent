@@ -109,32 +109,46 @@ export class TaskExecutor {
       child.stdout.on('data', (d: Buffer) => chunks.stdout.push(d.toString()))
       child.stderr.on('data', (d: Buffer) => chunks.stderr.push(d.toString()))
 
+      // These are async listeners on an EventEmitter, which ignores the promise
+      // they return — so an error escaping one becomes an unhandled rejection
+      // and takes the whole scheduler down with it, killing every other task's
+      // schedule. Recording the outcome is bookkeeping; it must never be fatal.
       child.on('close', async code => {
         const finalCode = code ?? -1
-        await this.executionRepo.update({
-          id: executionId,
-          finishedAt: new Date().toISOString(),
-          durationMs: Date.now() - start,
-          exitCode: finalCode,
-          status: finalCode === 0 ? 'success' : 'failed',
-          stdout: chunks.stdout.join(''),
-          stderr: chunks.stderr.join(''),
-        })
-        await this.executionRepo.trimByTaskId(taskId, this.configManager.getMaxHistoryItems())
-        resolve(finalCode)
+        try {
+          await this.executionRepo.update({
+            id: executionId,
+            finishedAt: new Date().toISOString(),
+            durationMs: Date.now() - start,
+            exitCode: finalCode,
+            status: finalCode === 0 ? 'success' : 'failed',
+            stdout: chunks.stdout.join(''),
+            stderr: chunks.stderr.join(''),
+          })
+          await this.executionRepo.trimByTaskId(taskId, this.configManager.getMaxHistoryItems())
+        } catch (err) {
+          console.error(`[executor] could not record completion of ${executionId}:`, err)
+        } finally {
+          resolve(finalCode)
+        }
       })
 
       child.on('error', async err => {
-        await this.executionRepo.update({
-          id: executionId,
-          finishedAt: new Date().toISOString(),
-          durationMs: Date.now() - start,
-          exitCode: -1,
-          status: 'failed',
-          stdout: chunks.stdout.join(''),
-          stderr: err.message,
-        })
-        resolve(-1)
+        try {
+          await this.executionRepo.update({
+            id: executionId,
+            finishedAt: new Date().toISOString(),
+            durationMs: Date.now() - start,
+            exitCode: -1,
+            status: 'failed',
+            stdout: chunks.stdout.join(''),
+            stderr: err.message,
+          })
+        } catch (updateErr) {
+          console.error(`[executor] could not record failure of ${executionId}:`, updateErr)
+        } finally {
+          resolve(-1)
+        }
       })
     })
 

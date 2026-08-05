@@ -3,12 +3,15 @@ import { getTrpcClient } from '../../lib/trpc'
 import { Plus } from 'lucide-react'
 import { TaskRow } from '../../components/task-row'
 import { LinkButton } from '../../components/link-button'
+import { ScheduleTimeline } from '../../components/schedule-timeline'
 
 export default async function DashboardPage() {
   const client = await getTrpcClient()
   let tasks: Awaited<ReturnType<typeof client.tasks.list.query>>
+  let timezone = ''
   try {
     tasks = await client.tasks.list.query()
+    timezone = (await client.system.getSettings.query()).timezone
   } catch (err: unknown) {
     const code = (err as { data?: { code?: string } })?.data?.code
     if (code === 'UNAUTHORIZED') redirect('/api/auth/signout')
@@ -30,11 +33,14 @@ export default async function DashboardPage() {
           <p className="text-sm">No tasks yet. Create one to get started.</p>
         </div>
       ) : (
-        <div className="rounded-lg border border-border divide-y divide-border bg-card">
-          {tasks.map(task => (
-            <TaskRow key={task.id} task={task} />
-          ))}
-        </div>
+        <>
+          <ScheduleTimeline tasks={tasks} timezone={timezone} />
+          <div className="rounded-lg border border-border divide-y divide-border bg-card">
+            {tasks.map(task => (
+              <TaskRow key={task.id} task={task} />
+            ))}
+          </div>
+        </>
       )}
     </div>
   )
