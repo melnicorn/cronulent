@@ -69,7 +69,7 @@ export function startHttpServer(opts: {
             const plugin = opts.pluginRegistry.get(pluginId)
             if (!plugin) throw new Error(`Plugin '${pluginId}' not found`)
             const state = opts.configManager.getPluginState(pluginId)
-            return plugin.dispatch(func, params, state.config, { stateStore: opts.stateStore })
+            return plugin.dispatch(func, params, state.config, { stateStore: opts.stateStore, pluginEnabled: state.enabled })
           },
         },
         pluginConfig: {
