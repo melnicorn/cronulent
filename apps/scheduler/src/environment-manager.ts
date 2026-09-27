@@ -86,7 +86,7 @@ _CRONULENT_API_URL = _os.environ.get('CRONULENT_API_URL', 'http://localhost:3001
 _CRONULENT_TOKEN = _os.environ.get('CRONULENT_INTERNAL_TOKEN', '')
 _CRONULENT_STATE_KEY = _os.environ.get('CRONULENT_STATE_KEY', '')
 
-def _cronulent_dispatch(plugin_id, func, params, strict=False):
+def _cronulent_dispatch(plugin_id, func, params, strict=False, timeout=10):
     body = _json.dumps({'pluginId': plugin_id, 'func': func, 'params': params, 'strict': strict}).encode()
     req = _urllib_request.Request(
         f'{_CRONULENT_API_URL}/plugins.dispatch',
@@ -94,7 +94,7 @@ def _cronulent_dispatch(plugin_id, func, params, strict=False):
         headers={'Content-Type': 'application/json', 'Authorization': f'Bearer {_CRONULENT_TOKEN}'},
     )
     try:
-        with _urllib_request.urlopen(req, timeout=10) as r:
+        with _urllib_request.urlopen(req, timeout=timeout) as r:
             raw = r.read()
     except _urllib_error.HTTPError as e:
         detail = ''
@@ -187,6 +187,36 @@ _cronulent_dispatch() {
       echo "[cronulent] warning: dispatch failed: \${plugin_id}.\${func}" >&2
     fi
   fi
+}
+
+# Like _cronulent_dispatch, but prints the call's result to stdout (strings as
+# raw text, anything else as JSON) so scripts can capture it with $(...).
+# params must already be valid JSON.
+_cronulent_dispatch_result() {
+  local plugin_id="$1" func="$2" params="$3" strict="\${4:-false}"
+  local _body="{\\"pluginId\\":\\"\${plugin_id}\\",\\"func\\":\\"\${func}\\",\\"params\\":\${params},\\"strict\\":\${strict}}"
+  local _tmp _http_code _curl_exit _msg
+  _tmp=$(mktemp)
+  # Body goes via stdin: a single argv string is capped at 128 KiB on Linux.
+  _http_code=$(printf '%s' "\${_body}" | curl -s -o "\${_tmp}" -w "%{http_code}" -X POST \\
+       "\${_CRONULENT_API_URL}/plugins.dispatch" \\
+       -H "Content-Type: application/json" \\
+       -H "Authorization: Bearer \${_CRONULENT_TOKEN}" \\
+       --data-binary @-)
+  _curl_exit=$?
+  if [ "\${_curl_exit}" -eq 0 ] && [ "\${_http_code:-0}" -lt 400 ]; then
+    python3 -c 'import json,sys; r=json.load(sys.stdin)["result"]["data"].get("result"); print(r if isinstance(r,str) else json.dumps(r))' < "\${_tmp}"
+    rm -f "\${_tmp}"
+    return 0
+  fi
+  _msg=$(python3 -c 'import json,sys; print((json.load(sys.stdin).get("error") or {}).get("message") or "")' < "\${_tmp}" 2>/dev/null)
+  rm -f "\${_tmp}"
+  _msg="\${_msg:-\${plugin_id}.\${func}}"
+  if [ "\${strict}" = "true" ]; then
+    echo "[cronulent] dispatch failed: \${_msg}" >&2
+    return 1
+  fi
+  echo "[cronulent] warning: dispatch failed: \${_msg}" >&2
 }
 
 `

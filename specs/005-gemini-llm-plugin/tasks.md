@@ -27,9 +27,9 @@ No project setup needed. There are no new packages or dependencies, and Node 22'
 
 **⚠️ CRITICAL**: Complete before any user story phase.
 
-- [ ] T001 In `apps/scheduler/src/plugins/index.ts`, add an optional `pluginEnabled?: boolean` field to the `DispatchServices` interface. Update the comment above it to say gemini also uses these services.
-- [ ] T002 In `apps/scheduler/src/http.ts`, change the `pluginRegistry.dispatch` implementation to pass `{ stateStore: opts.stateStore, pluginEnabled: state.enabled }` as the services argument (`state` is the existing `getPluginState(pluginId)` result).
-- [ ] T003 Create `apps/scheduler/src/plugins/gemini.ts` with:
+- [X] T001 In `apps/scheduler/src/plugins/index.ts`, add an optional `pluginEnabled?: boolean` field to the `DispatchServices` interface. Update the comment above it to say gemini also uses these services.
+- [X] T002 In `apps/scheduler/src/http.ts`, change the `pluginRegistry.dispatch` implementation to pass `{ stateStore: opts.stateStore, pluginEnabled: state.enabled }` as the services argument (`state` is the existing `getPluginState(pluginId)` result).
+- [X] T003 Create `apps/scheduler/src/plugins/gemini.ts` with:
   - (a) `manifest: PluginManifest`:
     - id `gemini`, name `Gemini`
     - description `Ask Google Gemini to interpret text and return structured JSON or plain text. Calls are capped per day.`
@@ -54,9 +54,9 @@ No project setup needed. There are no new packages or dependencies, and Node 22'
     - Type the response shape with a local interface (no `any`). Never put the key or URL in an error message.
   - (e) stub `generatePythonHelper`, `generateNodeHelper`, `generateShellHelper` that return a namespace with no functions yet (Python `class gemini:\n    pass\n`, Node `export const gemini = {}\n`, shell empty string).
   - (f) a `dispatch(func, params, config, services)` stub that rejects `[gemini] Unknown function: '<func>'`.
-- [ ] T004 Register gemini in `apps/scheduler/src/plugins/index.ts`: `import * as gemini from './gemini'` and add an entry to the `plugins` array mirroring the telegram entry. Depends on T001 and T003.
-- [ ] T005 In `apps/scheduler/src/environment-manager.ts` Python preamble, add a `timeout=10` keyword parameter to `_cronulent_dispatch(plugin_id, func, params, strict=False, timeout=10)` and pass it to `urlopen(req, timeout=timeout)`. Existing callers are unchanged.
-- [ ] T006 In `apps/scheduler/src/environment-manager.ts` shell preamble, add a new function `_cronulent_dispatch_result plugin_id func params_json [strict]` below `_cronulent_dispatch`. Leave `_cronulent_dispatch` unchanged. The function must:
+- [X] T004 Register gemini in `apps/scheduler/src/plugins/index.ts`: `import * as gemini from './gemini'` and add an entry to the `plugins` array mirroring the telegram entry. Depends on T001 and T003.
+- [X] T005 In `apps/scheduler/src/environment-manager.ts` Python preamble, add a `timeout=10` keyword parameter to `_cronulent_dispatch(plugin_id, func, params, strict=False, timeout=10)` and pass it to `urlopen(req, timeout=timeout)`. Existing callers are unchanged.
+- [X] T006 In `apps/scheduler/src/environment-manager.ts` shell preamble, add a new function `_cronulent_dispatch_result plugin_id func params_json [strict]` below `_cronulent_dispatch`. Leave `_cronulent_dispatch` unchanged. The function must:
   - build the same request body;
   - `curl -s -o "$tmp" -w "%{http_code}"` to a `mktemp` file;
   - on curl success and HTTP < 400, print the result with `python3 -c 'import json,sys; r=json.load(sys.stdin)["result"]["data"].get("result"); print(r if isinstance(r,str) else json.dumps(r))' < "$tmp"`;
@@ -75,7 +75,7 @@ No project setup needed. There are no new packages or dependencies, and Node 22'
 
 ### Tests for User Story 1
 
-- [ ] T007 [US1] Create `apps/scheduler/src/plugins/gemini.test.ts` using `node:test` + `node:assert/strict`, with a helper that stubs `globalThis.fetch`, records each request (URL, headers, parsed body), and restores it after each test. Add extract tests:
+- [X] T007 [US1] Create `apps/scheduler/src/plugins/gemini.test.ts` using `node:test` + `node:assert/strict`, with a helper that stubs `globalThis.fetch`, records each request (URL, headers, parsed body), and restores it after each test. Add extract tests:
   - (a) the request goes to `…/models/gemini-3.1-flash-lite:generateContent`, carries the key in the `x-goog-api-key` header, has no `key=` in the URL, and sends body `systemInstruction.parts[0].text === instructions`, `contents[0].parts[0].text === text`, `generationConfig.responseMimeType === 'application/json'`, and `generationConfig.responseJsonSchema` deep-equal to the schema;
   - (b) the parsed object is returned;
   - (c) a blank `model` config uses the default, and a custom model appears in the URL;
@@ -88,16 +88,16 @@ No project setup needed. There are no new packages or dependencies, and Node 22'
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] In `apps/scheduler/src/plugins/gemini.ts`, implement `extract`:
+- [X] T008 [US1] In `apps/scheduler/src/plugins/gemini.ts`, implement `extract`:
   - Zod schema `extractParamsSchema = z.object({ instructions: z.string().min(1), text: z.string(), schema: z.record(z.unknown()) })`, with invalid-params errors formatted like telegram's (`[gemini] invalid params — <path>: <message>`).
   - `dispatch` flow for `func === 'extract'`: validate params → `resolveConfig(config, services?.pluginEnabled ?? false)` → (US2 inserts the slot reservation here) → `callGemini` with `{ systemInstruction: { parts: [{ text: instructions }] }, contents: [{ role: 'user', parts: [{ text }] }], generationConfig: { responseMimeType: 'application/json', responseJsonSchema: schema } }` → `JSON.parse`. On a parse error, throw `[gemini] response was not valid JSON`.
   - Don't set temperature (research.md R3).
-- [ ] T009 [US1] In `apps/scheduler/src/plugins/gemini.ts`, add the extract helpers and docs:
+- [X] T009 [US1] In `apps/scheduler/src/plugins/gemini.ts`, add the extract helpers and docs:
   - Python `class gemini:` with `@staticmethod def extract(instructions, text, schema, strict=False): return _cronulent_dispatch('gemini', 'extract', {'instructions': instructions, 'text': text, 'schema': schema}, strict, timeout=90)`.
   - Node `export const gemini = { extract: (instructions, text, schema, strict = false) => _cronulentDispatch('gemini', 'extract', { instructions, text, schema }, strict) }`.
   - Shell `cronhooks_gemini_extract()`: build params with `python3 -c 'import json,sys; print(json.dumps({"instructions":sys.argv[1],"text":sys.argv[2],"schema":json.loads(sys.argv[3])}))' "$1" "$2" "$3"`; if that fails, print `[cronulent] gemini extract: schema is not valid JSON` to stderr and return 1. Otherwise call `_cronulent_dispatch_result "gemini" "extract" "$params" "${4:-false}"`.
   - Add `extract` entries to `pythonFunctionSchema` and `nodeFunctionSchema`, with params instructions/text/schema/strict (types `str`/`str`/`dict`/`bool` and `string`/`string`/`object`/`boolean`) and descriptions from contracts/gemini-helpers.md.
-- [ ] T010 [US1] Run `pnpm --filter scheduler test` and make the T007 tests pass.
+- [X] T010 [US1] Run `pnpm --filter scheduler test` and make the T007 tests pass.
 
 **Checkpoint**: Extraction works end-to-end with a real key (quickstart "Extract structured data").
 
@@ -111,7 +111,7 @@ No project setup needed. There are no new packages or dependencies, and Node 22'
 
 ### Tests for User Story 2
 
-- [ ] T011 [US2] Add cap tests to `apps/scheduler/src/plugins/gemini.test.ts`, with the clock injected through `reserveCall`'s `now` parameter:
+- [X] T011 [US2] Add cap tests to `apps/scheduler/src/plugins/gemini.test.ts`, with the clock injected through `reserveCall`'s `now` parameter:
   - (a) with `dailyLimit: '2'`, the 3rd call rejects with `[gemini] daily limit of 2 calls reached; resets at midnight Pacific`, and fetch was called exactly 2 times;
   - (b) a failed request (HTTP 500) still increments the count;
   - (c) refusals (limit reached, disabled plugin, bad `dailyLimit`, invalid params) don't increment it;
@@ -124,7 +124,7 @@ No project setup needed. There are no new packages or dependencies, and Node 22'
     - a new day resets the count;
   - (g) `dailyLimit: '0'` refuses every call;
   - (h) blank `dailyLimit` allows 20.
-- [ ] T012 [US2] In `apps/scheduler/src/plugins/gemini.ts`, implement:
+- [X] T012 [US2] In `apps/scheduler/src/plugins/gemini.ts`, implement:
   - `pacificDay(now: Date): string` using `new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles' }).format(now)`.
   - Exported `reserveCall(store: StateStore, limit: number, now = new Date()): Promise<number>`, wrapped in a module-level `const serialize = createSerializer()` (import from `../serialize`). It must:
     - read `USAGE_KEY` via `store.get`;
@@ -132,13 +132,13 @@ No project setup needed. There are no new packages or dependencies, and Node 22'
     - throw `[gemini] daily limit of ${limit} calls reached; resets at midnight Pacific` when `count >= limit`;
     - otherwise `store.set(USAGE_KEY, { day: today, count: count + 1 }, now.toISOString())` and return `count + 1`.
   - Export a `GeminiUsage` interface per data-model.md.
-- [ ] T013 [US2] In `apps/scheduler/src/plugins/gemini.ts` `dispatch`, call `reserveCall(services.stateStore, dailyLimit)` after `resolveConfig` and before `callGemini`. Reject `[gemini] state store is unavailable` if `services?.stateStore` is missing, before reserving. Add FR-014 logging with `console.log`/`console.warn`:
+- [X] T013 [US2] In `apps/scheduler/src/plugins/gemini.ts` `dispatch`, call `reserveCall(services.stateStore, dailyLimit)` after `resolveConfig` and before `callGemini`. Reject `[gemini] state store is unavailable` if `services?.stateStore` is missing, before reserving. Add FR-014 logging with `console.log`/`console.warn`:
   - `[gemini] call ${n}/${limit} today (${func}): ok` on success;
   - `[gemini] call ${n}/${limit} today (${func}): failed — <message without the '[gemini] ' prefix>` on failure;
   - `[gemini] refused (${func}): daily limit of ${limit} reached` on a cap refusal.
 
   Never log the key, prompt, or text.
-- [ ] T014 [US2] Run `pnpm --filter scheduler test` and make the T011 tests pass.
+- [X] T014 [US2] Run `pnpm --filter scheduler test` and make the T011 tests pass.
 
 **Checkpoint**: The cap holds (quickstart "Verifying the daily cap" steps 1–5).
 
@@ -168,17 +168,17 @@ No project setup needed. There are no new packages or dependencies, and Node 22'
 
 **Independent Test**: A Node task calling `await cronhooks.gemini.prompt('Say hi')` receives a non-empty string.
 
-- [ ] T016 [US4] Add prompt tests to `apps/scheduler/src/plugins/gemini.test.ts`:
+- [X] T016 [US4] Add prompt tests to `apps/scheduler/src/plugins/gemini.test.ts`:
   - (a) the body has `contents[0].parts[0].text === prompt`, no `generationConfig`, and no `systemInstruction`;
   - (b) the joined text is returned as a string;
   - (c) prompt and extract calls share one daily count;
   - (d) an empty prompt rejects as invalid params without fetching.
-- [ ] T017 [US4] In `apps/scheduler/src/plugins/gemini.ts`:
+- [X] T017 [US4] In `apps/scheduler/src/plugins/gemini.ts`:
   - add `promptParamsSchema = z.object({ prompt: z.string().min(1) })`;
   - add a `func === 'prompt'` branch to `dispatch` that follows the same validate → resolveConfig → reserveCall → callGemini flow with body `{ contents: [{ role: 'user', parts: [{ text: prompt }] }] }` and returns the text;
   - add helpers: Python `def prompt(prompt, strict=False)` (timeout=90), Node `prompt: (prompt, strict = false) => …`, and shell `cronhooks_gemini_prompt()` (params via `python3 json.dumps({"prompt": sys.argv[1]})`, then `_cronulent_dispatch_result "gemini" "prompt" "$params" "${2:-false}"`);
   - add `prompt` entries to both function schemas.
-- [ ] T018 [US4] Run `pnpm --filter scheduler test` and make the T016 tests pass.
+- [X] T018 [US4] Run `pnpm --filter scheduler test` and make the T016 tests pass.
 
 **Checkpoint**: All four stories work.
 
@@ -186,7 +186,7 @@ No project setup needed. There are no new packages or dependencies, and Node 22'
 
 ## Phase 7: Polish & Verification
 
-- [ ] T019 Run `pnpm turbo check-types lint build test` from the repo root and fix any errors or warnings (`--max-warnings 0`) in the touched files only.
+- [X] T019 Run `pnpm turbo check-types lint build test` from the repo root and fix any errors or warnings (`--max-warnings 0`) in the touched files only.
 - [ ] T020 Walk through `specs/005-gemini-llm-plugin/quickstart.md` end to end with a real Gemini key. Record for each: Python extract, Node prompt, shell extract with text containing quotes and newlines, the daily cap steps 1–5, and a ~3,000-character extract (SC-004). If `responseJsonSchema` is rejected for `gemini-3.1-flash-lite`, stop and report back instead of switching to `responseSchema` silently.
 - [ ] T021 Verify SC-003:
   - from a shell task, run `env | grep -i -e gemini -e goog` and confirm there's no key;

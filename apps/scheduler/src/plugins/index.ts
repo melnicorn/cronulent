@@ -2,11 +2,14 @@ import type { PluginManifest } from '@repo/common'
 import type { StateStore } from '../state-store'
 import * as telegram from './telegram'
 import * as state from './state'
+import * as gemini from './gemini'
 
-// Extra server-side services made available to a plugin's dispatch. Only the
-// built-in state hook uses these today; integration plugins ignore them.
+// Extra server-side services made available to a plugin's dispatch. Used by the
+// built-in state hook and by gemini (usage counter, enabled check); other
+// integration plugins ignore them.
 export interface DispatchServices {
   stateStore: StateStore
+  pluginEnabled?: boolean
 }
 
 interface Plugin {
@@ -36,6 +39,13 @@ const plugins: Plugin[] = [
     generateNodeHelper: state.generateNodeHelper,
     generateShellHelper: state.generateShellHelper,
     dispatch: state.dispatch,
+  },
+  {
+    manifest: gemini.manifest,
+    generatePythonHelper: gemini.generatePythonHelper,
+    generateNodeHelper: gemini.generateNodeHelper,
+    generateShellHelper: gemini.generateShellHelper,
+    dispatch: gemini.dispatch,
   },
 ]
 
