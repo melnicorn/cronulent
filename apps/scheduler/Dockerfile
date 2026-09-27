@@ -9,7 +9,9 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 ENV VOLTA_HOME=/root/.volta
 ENV PATH=$VOLTA_HOME/bin:$PATH
 RUN curl https://get.volta.sh | bash
-RUN volta install node@lts pnpm
+# Pinned to match package.json "packageManager" — an unpinned install picks up
+# new pnpm majors between builds (pnpm 12 broke the image this way).
+RUN volta install node@lts pnpm@11.1.1
 
 WORKDIR /app
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
