@@ -1,6 +1,6 @@
 FROM node:22-slim
 
-RUN apt-get update && apt-get install -y curl python3 bash && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y curl python3 bash libatomic1 && rm -rf /var/lib/apt/lists/*
 
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
