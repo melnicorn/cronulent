@@ -3,6 +3,7 @@ import type { StateStore } from '../state-store'
 import * as telegram from './telegram'
 import * as state from './state'
 import * as gemini from './gemini'
+import * as peskybird from './peskybird'
 
 // Extra server-side services made available to a plugin's dispatch. Used by the
 // built-in state hook and by gemini (usage counter, enabled check); other
@@ -32,6 +33,13 @@ const plugins: Plugin[] = [
     generateNodeHelper: telegram.generateNodeHelper,
     generateShellHelper: telegram.generateShellHelper,
     dispatch: telegram.dispatch,
+  },
+  {
+    manifest: peskybird.manifest,
+    generatePythonHelper: peskybird.generatePythonHelper,
+    generateNodeHelper: peskybird.generateNodeHelper,
+    generateShellHelper: peskybird.generateShellHelper,
+    dispatch: peskybird.dispatch,
   },
   {
     manifest: state.manifest,
