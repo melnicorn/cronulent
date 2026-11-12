@@ -91,6 +91,14 @@ test('custom model is used in the request path', async () => {
   assert.match(requests[0]!.url, /\/models\/gemini-9-custom:generateContent$/)
 })
 
+test('per-call model overrides the plugin setting; null falls back to it', async () => {
+  await dispatch('prompt', { prompt: 'a', model: 'gemini-per-call' }, config({ model: 'gemini-9-custom' }), services())
+  await dispatch('extract', { ...extractParams, model: null }, config({ model: 'gemini-9-custom' }), services())
+  assert.match(requests[0]!.url, /\/models\/gemini-per-call:generateContent$/)
+  assert.match(requests[1]!.url, /\/models\/gemini-9-custom:generateContent$/)
+  assert.ok(!('model' in requests[0]!.body))
+})
+
 test('thought parts are skipped when joining response text', async () => {
   respond = () => Response.json({
     candidates: [{ content: { parts: [{ text: 'thinking...', thought: true }, { text: '{"found":false}' }] } }],

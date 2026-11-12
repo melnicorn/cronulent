@@ -4,6 +4,7 @@ import * as telegram from './telegram'
 import * as state from './state'
 import * as gemini from './gemini'
 import * as peskybird from './peskybird'
+import * as claude from './claude'
 
 // Extra server-side services made available to a plugin's dispatch. Used by the
 // built-in state hook and by gemini (usage counter, enabled check); other
@@ -54,6 +55,13 @@ const plugins: Plugin[] = [
     generateNodeHelper: gemini.generateNodeHelper,
     generateShellHelper: gemini.generateShellHelper,
     dispatch: gemini.dispatch,
+  },
+  {
+    manifest: claude.manifest,
+    generatePythonHelper: claude.generatePythonHelper,
+    generateNodeHelper: claude.generateNodeHelper,
+    generateShellHelper: claude.generateShellHelper,
+    dispatch: claude.dispatch,
   },
 ]
 

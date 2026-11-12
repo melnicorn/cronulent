@@ -3,7 +3,7 @@ STL Aquarium Foundation — Splash Bash page-change watcher.
 
 The old "coming soon" placeholder is gone (sponsors can now buy tables), so we
 no longer have a single phrase to trigger on. Instead this watches the event
-page's main content block and alerts via Telegram whenever it changes from the
+page's main content block and alerts via PeskyBird whenever it changes from the
 last-seen content — the signal that individual tickets (or new details) have
 been posted.
 
@@ -97,8 +97,8 @@ def sha(text: str) -> str:
 
 
 def alert(title: str, body: str):
-    log(f"Sending Telegram alert: {title}")
-    cronhooks.telegram.send_message(title, body)
+    log(f"Sending PeskyBird alert: {title}")
+    cronhooks.peskybird.send_message(title, body)
     log("Sent.")
 
 
