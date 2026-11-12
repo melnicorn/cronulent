@@ -1,8 +1,9 @@
 import { z } from 'zod'
 import type { PluginManifest } from '@repo/common'
 import type { DispatchServices } from './index'
-import type { StateStore } from '../state-store'
-import { createSerializer } from '../serialize'
+import { createDailyLimiter, DailyLimitError } from './daily-limit'
+
+export { pacificDay } from './daily-limit'
 
 export const DEFAULT_MODEL = 'gemini-3.1-flash-lite'
 export const DEFAULT_DAILY_LIMIT = 20
@@ -12,11 +13,6 @@ export const REQUEST_TIMEOUT_MS = 60_000
 // Longer than REQUEST_TIMEOUT_MS so a slow call surfaces as the server's
 // timeout error rather than the client giving up first.
 const HELPER_TIMEOUT_S = 90
-
-export interface GeminiUsage {
-  day: string // quota day, YYYY-MM-DD in America/Los_Angeles
-  count: number
-}
 
 export const manifest: PluginManifest = {
   id: 'gemini',
@@ -36,6 +32,7 @@ export const manifest: PluginManifest = {
         { name: 'text', type: 'str', description: 'The text to interpret', optional: false },
         { name: 'schema', type: 'dict', description: 'JSON Schema the result must match', optional: false },
         { name: 'strict', type: 'bool', description: 'Raise an error instead of returning None on failure or when the daily limit is reached', optional: true, defaultValue: 'False' },
+        { name: 'model', type: 'str', description: 'Model ID for this call; overrides the plugin setting', optional: true, defaultValue: 'None' },
       ],
     },
     {
@@ -44,6 +41,7 @@ export const manifest: PluginManifest = {
       params: [
         { name: 'prompt', type: 'str', description: 'The prompt', optional: false },
         { name: 'strict', type: 'bool', description: 'Raise an error instead of returning None on failure or when the daily limit is reached', optional: true, defaultValue: 'False' },
+        { name: 'model', type: 'str', description: 'Model ID for this call; overrides the plugin setting', optional: true, defaultValue: 'None' },
       ],
     },
   ],
@@ -56,6 +54,7 @@ export const manifest: PluginManifest = {
         { name: 'text', type: 'string', description: 'The text to interpret', optional: false },
         { name: 'schema', type: 'object', description: 'JSON Schema the result must match', optional: false },
         { name: 'strict', type: 'boolean', description: 'Throw instead of resolving undefined on failure or when the daily limit is reached', optional: true, defaultValue: 'false' },
+        { name: 'model', type: 'string', description: 'Model ID for this call; overrides the plugin setting', optional: true, defaultValue: 'undefined' },
       ],
     },
     {
@@ -64,6 +63,7 @@ export const manifest: PluginManifest = {
       params: [
         { name: 'prompt', type: 'string', description: 'The prompt', optional: false },
         { name: 'strict', type: 'boolean', description: 'Throw instead of resolving undefined on failure or when the daily limit is reached', optional: true, defaultValue: 'false' },
+        { name: 'model', type: 'string', description: 'Model ID for this call; overrides the plugin setting', optional: true, defaultValue: 'undefined' },
       ],
     },
   ],
@@ -73,20 +73,20 @@ export function generatePythonHelper(): string {
   return `\
 class gemini:
     @staticmethod
-    def extract(instructions, text, schema, strict=False):
-        return _cronulent_dispatch('gemini', 'extract', {'instructions': instructions, 'text': text, 'schema': schema}, strict, timeout=${HELPER_TIMEOUT_S})
+    def extract(instructions, text, schema, strict=False, model=None):
+        return _cronulent_dispatch('gemini', 'extract', {'instructions': instructions, 'text': text, 'schema': schema, 'model': model}, strict, timeout=${HELPER_TIMEOUT_S})
 
     @staticmethod
-    def prompt(prompt, strict=False):
-        return _cronulent_dispatch('gemini', 'prompt', {'prompt': prompt}, strict, timeout=${HELPER_TIMEOUT_S})
+    def prompt(prompt, strict=False, model=None):
+        return _cronulent_dispatch('gemini', 'prompt', {'prompt': prompt, 'model': model}, strict, timeout=${HELPER_TIMEOUT_S})
 `
 }
 
 export function generateNodeHelper(): string {
   return `\
 export const gemini = {
-  extract: (instructions, text, schema, strict = false) => _cronulentDispatch('gemini', 'extract', { instructions, text, schema }, strict),
-  prompt: (prompt, strict = false) => _cronulentDispatch('gemini', 'prompt', { prompt }, strict),
+  extract: (instructions, text, schema, strict = false, model) => _cronulentDispatch('gemini', 'extract', { instructions, text, schema, model }, strict),
+  prompt: (prompt, strict = false, model) => _cronulentDispatch('gemini', 'prompt', { prompt, model }, strict),
 }
 `
 }
@@ -96,18 +96,18 @@ export const gemini = {
 export function generateShellHelper(): string {
   return `\
 cronhooks_gemini_extract() {
-  # cronhooks_gemini_extract "<instructions>" "<text>" '<schema-json>' [strict]  -> prints result JSON
+  # cronhooks_gemini_extract "<instructions>" "<text>" '<schema-json>' [strict] [model]  -> prints result JSON
   local params
-  params=$(printf '%s' "$2" | python3 -c 'import json,sys; print(json.dumps({"instructions": sys.argv[1], "text": sys.stdin.read(), "schema": json.loads(sys.argv[2])}))' "$1" "$3" 2>/dev/null) || {
+  params=$(printf '%s' "$2" | python3 -c 'import json,sys; print(json.dumps({"instructions": sys.argv[1], "text": sys.stdin.read(), "schema": json.loads(sys.argv[2]), "model": sys.argv[3] or None}))' "$1" "$3" "$5" 2>/dev/null) || {
     echo "[cronulent] gemini extract: schema is not valid JSON" >&2
     return 1
   }
   _cronulent_dispatch_result "gemini" "extract" "\${params}" "\${4:-false}"
 }
 cronhooks_gemini_prompt() {
-  # cronhooks_gemini_prompt "<prompt>" [strict]  -> prints response text
+  # cronhooks_gemini_prompt "<prompt>" [strict] [model]  -> prints response text
   local params
-  params=$(printf '%s' "$1" | python3 -c 'import json,sys; print(json.dumps({"prompt": sys.stdin.read()}))')
+  params=$(printf '%s' "$1" | python3 -c 'import json,sys; print(json.dumps({"prompt": sys.stdin.read(), "model": sys.argv[1] or None}))' "$3")
   _cronulent_dispatch_result "gemini" "prompt" "\${params}" "\${2:-false}"
 }
 `
@@ -133,43 +133,7 @@ function resolveConfig(config: Record<string, string>, pluginEnabled: boolean) {
 
 // --- Daily cap ---
 
-const pacificFormat = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles' })
-
-/** Gemini's free-tier quota day: the calendar date in US Pacific time. */
-export function pacificDay(now: Date): string {
-  return pacificFormat.format(now)
-}
-
-class DailyLimitError extends Error {
-  constructor(limit: number) {
-    super(`[gemini] daily limit of ${limit} calls reached; resets at midnight Pacific`)
-  }
-}
-
-function isUsage(value: unknown): value is GeminiUsage {
-  const v = value as GeminiUsage | null
-  return typeof v?.day === 'string' && typeof v?.count === 'number'
-}
-
-// Check-and-increment must be atomic, or two tasks could both see one call left.
-const serialize = createSerializer()
-
-/**
- * Reserve one call for today, before the request is sent — so failed requests
- * still count, and concurrent callers can't overshoot. Returns today's count
- * including this call. Throws DailyLimitError when the limit is reached.
- */
-export function reserveCall(store: StateStore, limit: number, now = new Date()): Promise<number> {
-  return serialize(async () => {
-    const today = pacificDay(now)
-    const { value } = await store.get(USAGE_KEY)
-    const used = isUsage(value) && value.day === today ? value.count : 0
-    if (used >= limit) throw new DailyLimitError(limit)
-    const usage: GeminiUsage = { day: today, count: used + 1 }
-    await store.set(USAGE_KEY, usage, now.toISOString())
-    return usage.count
-  })
-}
+export const reserveCall = createDailyLimiter('gemini', USAGE_KEY)
 
 // --- Gemini API ---
 
@@ -219,14 +183,19 @@ async function callGemini(apiKey: string, model: string, body: object): Promise<
 
 // --- Dispatch ---
 
+// Helpers send null when a script leaves model out.
+const modelParam = z.string().trim().min(1).nullish()
+
 const extractParamsSchema = z.object({
   instructions: z.string().min(1),
   text: z.string(),
   schema: z.record(z.unknown()),
+  model: modelParam,
 })
 
 const promptParamsSchema = z.object({
   prompt: z.string().min(1),
+  model: modelParam,
 })
 
 function parseParams<T>(schema: z.ZodType<T>, params: Record<string, unknown>): T {
@@ -238,11 +207,15 @@ function parseParams<T>(schema: z.ZodType<T>, params: Record<string, unknown>): 
   return parsed.data
 }
 
-function buildRequest(func: string, params: Record<string, unknown>): { body: object; parse: (text: string) => unknown } {
+function buildRequest(
+  func: string,
+  params: Record<string, unknown>,
+): { body: object; model?: string | null; parse: (text: string) => unknown } {
   switch (func) {
     case 'extract': {
-      const { instructions, text, schema } = parseParams(extractParamsSchema, params)
+      const { instructions, text, schema, model } = parseParams(extractParamsSchema, params)
       return {
+        model,
         body: {
           systemInstruction: { parts: [{ text: instructions }] },
           contents: [{ role: 'user', parts: [{ text }] }],
@@ -258,8 +231,8 @@ function buildRequest(func: string, params: Record<string, unknown>): { body: ob
       }
     }
     case 'prompt': {
-      const { prompt } = parseParams(promptParamsSchema, params)
-      return { body: { contents: [{ role: 'user', parts: [{ text: prompt }] }] }, parse: (raw) => raw }
+      const { prompt, model } = parseParams(promptParamsSchema, params)
+      return { model, body: { contents: [{ role: 'user', parts: [{ text: prompt }] }] }, parse: (raw) => raw }
     }
     default:
       throw new Error(`[gemini] Unknown function: '${func}'`)
@@ -275,7 +248,8 @@ export async function dispatch(
   // Everything that can refuse the call runs before a slot is reserved, so
   // refusals never count against the daily limit.
   const request = buildRequest(func, params)
-  const { apiKey, model, dailyLimit } = resolveConfig(config, services?.pluginEnabled ?? false)
+  const { apiKey, model: configModel, dailyLimit } = resolveConfig(config, services?.pluginEnabled ?? false)
+  const model = request.model ?? configModel
   if (!services?.stateStore) throw new Error('[gemini] state store is unavailable')
 
   let n: number
